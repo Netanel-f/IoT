@@ -8,6 +8,8 @@
 #define SERIAL_TIMEOUT -1
 
 #include <stdbool.h>
+#include <windows.h>
+#include <stdio.h>
 
 
 bool SerialInit(char* port, unsigned int baud);

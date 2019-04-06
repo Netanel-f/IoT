@@ -1,12 +1,9 @@
 
-#include <stdbool.h>
-#include <windows.h>
-#include <stdio.h>
-#include "serial_io.h"
-
 static HANDLE hComm;
 static COMMTIMEOUTS original_timeouts;
 static COMMTIMEOUTS timeouts;
+
+#include "serial_io.h"
 
 /*
  * Initialize serial port.

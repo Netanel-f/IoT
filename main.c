@@ -36,7 +36,7 @@ int main()
         {
             unsigned char buf[84] = "";
             SerialRecv(buf, 84, 5000);
-            printf("%s\n", buf);
+            printf("%s", buf);
         }
         SerialDisable();
     }

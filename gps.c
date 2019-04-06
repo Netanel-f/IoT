@@ -5,8 +5,11 @@ void GPSInit() {
 }
 
 uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
+    unsigned char small_buf[84] = "";
+    int i = 0;
     if (GPS_INITIALIZED) {
-        return SerialRecv((unsigned char*) buf, MAX_NMEA_LEN, RECV_TIMEOUT_MS);
+        bytes_read = SerialRecv(small_buf, MAX_NMEA_LEN, RECV_TIMEOUT_MS);
+
     }
     else {
         return 0;
@@ -14,7 +17,9 @@ uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
 }
 
 
-bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
+bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
+
+}
 
 void GPSDisable() {
     if (GPS_INITIALIZED) {

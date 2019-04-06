@@ -28,17 +28,24 @@
 //    exit(0);
 //}
 
+//int main()
+//{
+//    if (SerialInit(PORT, BAUD_RATE))
+//    {
+//        for (int i = 0; i < 50; i++)
+//        {
+//            unsigned char buf[84] = "";
+//            SerialRecv(buf, 84, 5000);
+//            printf("%s", buf);
+//        }
+//        SerialDisable();
+//    }
+//    exit(0);
+//}
+
 int main()
 {
-    if (SerialInit(PORT, BAUD_RATE))
-    {
-        for (int i = 0; i < 50; i++)
-        {
-            unsigned char buf[84] = "";
-            SerialRecv(buf, 84, 5000);
-            printf("%s", buf);
-        }
-        SerialDisable();
-    }
+    GPS_LOCATION_INFO* last;
+    GPSGetFixInformation(last);
     exit(0);
 }

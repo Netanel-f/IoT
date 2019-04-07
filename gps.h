@@ -18,8 +18,10 @@
 #define RMC_PREFIX "$GPRMC" // has date
 #define GSA_PREFIX "$GPGSA"
 #define PREFIX_LEN 6
-#define DELIMITER ","
-#define GGA_FIELDS_NUM 13
+#define DELIMITER ','
+#define END_OF_TOKEN '\0'
+#define GGA_FIELDS_NUM 14
+#define RMC_FIELDS_NUM 11
 #define GSA_FIELDS_NUM 17
 
 

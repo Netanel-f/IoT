@@ -24,6 +24,13 @@
 #define RMC_FIELDS_NUM 11
 #define GSA_FIELDS_NUM 17
 
+#define FLOAT_RMV_FACTOR 10000000
+#define LAT_DEG_DIGITS 2
+#define LONGIT_DEG_DIGITS 3
+
+/* FOR TESTING */ //TODO: remove
+#define SAMPLE_LINE "$GPRMC,093616.812,V,3954.929,N,07402.499,W,37.6,2.79,070419,,E*4A"
+/***************/
 
 static bool GPS_INITIALIZED = FALSE;
 
@@ -35,7 +42,7 @@ typedef __packed struct _GPS_LOCATION_INFO {
     uint8_t valid_fix : 1;
     uint8_t reserved1 : 3;
     uint8_t num_sats : 4;
-    char fixtime[10];
+    char fixtime[13]; // DDMMYYhhmmss\0
 } GPS_LOCATION_INFO;
 
 void GPSInit();

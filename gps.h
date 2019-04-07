@@ -23,19 +23,18 @@
 #define GGA_FIELDS_NUM 14
 #define RMC_FIELDS_NUM 11
 #define GSA_FIELDS_NUM 17
-#define GGA_MIN_FIELDS 7 // time .. #satellites
+#define GGA_MIN_REQUIRED_FIELDS 7 // time .. #satellites
 #define RMC_DATE_FIELD 8
 #define RMC_TIME_FIELD 0
 
 #define FLOAT_RMV_FACTOR 10000000
+#define ALT_FACTOR 100
+#define HDOP_FACTOR 5
 #define LAT_DEG_DIGITS 2
 #define LONGIT_DEG_DIGITS 3
-#define ALT_DEG_DIGITS 3
 
 /* FOR TESTING */ //TODO: remove
 #define SAMPLE_LINE "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A"
-// "$GPGGA,123519,4807.038,N,07402.499,W,0,00,,,M,,M,,*5C";
-/***************/
 
 static bool GPS_INITIALIZED = FALSE;
 

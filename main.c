@@ -46,6 +46,6 @@
 int main()
 {
 //    GPS_LOCATION_INFO* last;
-    GPSGetFixInformation(NULL);
-    exit(0);
+    int result = GPSGetFixInformation(NULL);
+    exit(result);
 }

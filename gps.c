@@ -39,6 +39,9 @@ tokens_array){
                 // empty field
                 tokens_array[i++] = NULL;
                 last_token = NULL;
+                if (i < GGA_MIN_FIELDS){
+                    return -1;
+                }
             } else {
                 // non-empty field
                 last_token = p;
@@ -56,46 +59,72 @@ tokens_array){
 }
 
 bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
+    for (int j=0; j<GGA_MIN_FIELDS; j++){
+        if (split_line[j] == NULL){
+            return -1;
+        }
+    }
     int i = 0;
     /* time */ //HHMMSS (UTC)
     strcpy(location->fixtime, split_line[i]);
     i++;
     /* latitude */
-    int32_t degrees = (split_line[i][0] - '0')*10 + (split_line[i][1] - '0');
+    int32_t degrees = (split_line[i][0] - '0') * 10 + (split_line[i][1] - '0');
     split_line[i] += LAT_DEG_DIGITS;
-    double minutes = atof(split_line[i])/60;
+    double minutes = atof(split_line[i]) / 60;
     minutes += degrees;
-    degrees = minutes*FLOAT_RMV_FACTOR;
+    degrees = minutes * FLOAT_RMV_FACTOR;
+
     i++;
+
     /* +N/S- */
-    if (*split_line[i] == 'S'){
+    if (*split_line[i] == 'S')
+    {
         // negate result for south
         degrees = 0 - degrees;
     }
     location->latitude = degrees;
     i++;
     // Longtitude
-    degrees = (split_line[i][0] - '0')*100 + (split_line[i][1] - '0')*10 + (split_line[i][2] - '0');
+    degrees = (split_line[i][0] - '0') * 100 + (split_line[i][1] - '0') * 10 +
+                      (split_line[i][2] - '0');
     split_line[i] += LONGIT_DEG_DIGITS;
-    minutes = (double)atof(split_line[i])/60;
+    minutes = (double) atof(split_line[i]) / 60;
     minutes += degrees;
-    degrees = minutes*FLOAT_RMV_FACTOR;
+    degrees = minutes * FLOAT_RMV_FACTOR;
     i++;
     /* +E/W- */
-    if (*split_line[i] == 'W'){
+    if (*split_line[i] == 'W')
+    {
         // negate result for west
         degrees = 0 - degrees;
     }
     location->longitude = degrees;
     i++;
     // fix quality
+    location->valid_fix = atoi(split_line[i]);
+    i++;
     // num of satellites
-    // horizontal DOP
+    location->num_sats = atoi(split_line[i]);
+    i++;
+    // hDOP
+    location->hdop = atoi(split_line[i])*5;
+    i++;
     // Altitude, meters, above sea level
+    // *10^2
+    location->altitude = atoi(split_line[i])*100;
+    i++;
+    // M of altitude
+    i++;
     // Height of geoid
+    i++;
     // time in seconds since last DGPS update
+    i++;
     // DGPS station ID num
+    i++;
     // checksum data, begins with *
+    i++;
+    return 0;
 }
 
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
@@ -109,18 +138,22 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
 //    char buf[MAX_NMEA_LEN] = SAMPLE_LINE;
 
     GPS_LOCATION_INFO* loc = malloc(sizeof(GPS_LOCATION_INFO));
-
+    int result = 0;
     int tokens_array_size = max(GGA_FIELDS_NUM, RMC_FIELDS_NUM);
     char* tokens_array[tokens_array_size];
     if (strncmp(buf, GGA_PREFIX, PREFIX_LEN) == 0) {
-        splitLineToFields(GGA_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
-        parseGGA(tokens_array, loc);
+        result = splitLineToFields(GGA_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
+        if (result == 0)
+        {
+            result = parseGGA(tokens_array, loc);
+        }
+        return result;
     } else if (strncmp(buf, RMC_PREFIX, PREFIX_LEN) == 0) {
         splitLineToFields(RMC_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
     } else {
         // unimpoortant line
     }
-
+    printf("hi");
     free(loc); // todo handle
 
     return 0;

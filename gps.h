@@ -49,11 +49,30 @@ typedef __packed struct _GPS_LOCATION_INFO {
     char fixtime[13]; // hhmmssDDMMYY \0
 } GPS_LOCATION_INFO;
 
+
+/**
+ * Initiate GPS connection.
+ */
 void GPSInit();
+
+/**
+ * Gets line from GPS.
+ * @param buf - output buffer to put the line into.
+ * @param maxlen - max length of a line.
+ * @return number of bytes received.
+ */
 uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen);
+
+/**
+ * Updates location with information from GPSGetReadRaw.
+ * @param location - the struct to be filled.
+ * @return 0 if successful, -1 otherwise.
+ */
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
+
+/**
+ * Disable GPS connection.
+ */
 void GPSDisable();
-
-
 
 #endif //IOT_GPS_H

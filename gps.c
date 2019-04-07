@@ -221,7 +221,7 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
 }
 
 /**
- * Disable GPS.
+ * Disable GPS connection.
  */
 void GPSDisable() {
     if (GPS_INITIALIZED) {

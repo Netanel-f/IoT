@@ -46,6 +46,8 @@
 int main()
 {
 //    GPS_LOCATION_INFO* last;
-    int result = GPSGetFixInformation(NULL);
+    GPS_LOCATION_INFO* loc = malloc(sizeof(GPS_LOCATION_INFO));
+    int result = GPSGetFixInformation(loc);
+    free(loc);
     exit(result);
 }

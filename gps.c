@@ -16,7 +16,8 @@ uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
     }
 }
 
-bool splitLineToFields(int num_of_fields, int prefix_length, char buf[MAX_NMEA_LEN], char**
+bool splitLineToFields(int num_of_fields, int prefix_length, char
+buf[MAX_NMEA_LEN], char**
 tokens_array){
 
     char* p = &buf[prefix_length]; // start line after prefix
@@ -39,9 +40,6 @@ tokens_array){
                 // empty field
                 tokens_array[i++] = NULL;
                 last_token = NULL;
-                if (i < GGA_MIN_FIELDS){
-                    return -1;
-                }
             } else {
                 // non-empty field
                 last_token = p;
@@ -55,6 +53,14 @@ tokens_array){
             p++;
         }
     }
+    return 0;
+}
+
+bool parseRMC(char** split_line, GPS_LOCATION_INFO *location){
+    // only fills date and time in the following order:
+    // hhmmssDDMMYY
+    strcpy(location->fixtime, split_line[RMC_TIME_FIELD]);
+    strcpy(location->fixtime+6, split_line[RMC_DATE_FIELD]);
     return 0;
 }
 
@@ -112,7 +118,10 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
     i++;
     // Altitude, meters, above sea level
     // *10^2
-    location->altitude = atoi(split_line[i])*100;
+    if (split_line[i] != NULL)
+    {
+        location->altitude = atoi(split_line[i]) * 100;
+    }
     i++;
     // M of altitude
     i++;
@@ -134,10 +143,9 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
 
     // for testing:
 
-    char buf[MAX_NMEA_LEN] = "$GPGGA,123519,4807.038,N,07402.499,W,0,00,,,M,,M,,*5C";
-//    char buf[MAX_NMEA_LEN] = SAMPLE_LINE;
+//    char buf[MAX_NMEA_LEN] = "$GPGGA,123519,4807.038,N,07402.499,W,0,00,,,M,,M,,*5C";
+    char buf[MAX_NMEA_LEN] = SAMPLE_LINE;
 
-    GPS_LOCATION_INFO* loc = malloc(sizeof(GPS_LOCATION_INFO));
     int result = 0;
     int tokens_array_size = max(GGA_FIELDS_NUM, RMC_FIELDS_NUM);
     char* tokens_array[tokens_array_size];
@@ -145,16 +153,20 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
         result = splitLineToFields(GGA_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
         if (result == 0)
         {
-            result = parseGGA(tokens_array, loc);
+            result = parseGGA(tokens_array, location);
         }
         return result;
     } else if (strncmp(buf, RMC_PREFIX, PREFIX_LEN) == 0) {
-        splitLineToFields(RMC_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
+        result = splitLineToFields(RMC_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
+        if (result == 0)
+        {
+            result = parseRMC(tokens_array, location);
+        }
+        return result;
     } else {
-        // unimpoortant line
+        // unimportant line
+        return -1; 
     }
-    printf("hi");
-    free(loc); // todo handle
 
     return 0;
     }

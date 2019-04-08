@@ -5,28 +5,39 @@
 #include "gps.h"
 
 
-//int main() {
-//    GPSInit();
-//    uint32_t iteration_counter = 0;
-//    GPS_LOCATION_INFO* last_location = malloc(sizeof(GPS_LOCATION_INFO));
-//    if (last_location == NULL)
-//    {
-//        printf("Memory Allocation Error");
-//        return EXIT_FAILURE;
-//    }
-//
-//    while (GPS_INITIALIZED) {
-//        iteration_counter++;
-//        GPSGetFixInformation(last_location); // TODO handle return value
-//
+int main() {
+    GPSInit();
+    GPS_INITIALIZED = TRUE;
+    uint32_t iteration_counter = 0;
+    GPS_LOCATION_INFO* last_location = malloc(sizeof(GPS_LOCATION_INFO));
+    if (last_location == NULL)
+    {
+        printf("Memory Allocation Error");
+        return EXIT_FAILURE;
+    }
+
+    bool result;
+    while (GPS_INITIALIZED && iteration_counter < 50) {
+        iteration_counter++;
+        result = GPSGetFixInformation(last_location);
+
 //        // TODO print it + Google Maps format + counter
-//
-//        Sleep(3);
-//    }
+        if (result == TRUE){
+            printf("TYPE: %d\t", last_location->prefix);
+            printf("latitude: %d\t", last_location->latitude);
+            printf("longitude: %d\t", last_location->longitude);
+            printf("altitude: %d\t", last_location->altitude);
+            printf("time: %s\n", last_location->fixtime);
+
+            Sleep(1);
+        }
+    }
+    free(last_location);
+    GPSDisable();
 //    // TODO disable + free malloc + handle error to free!
-//    //
-//    exit(0);
-//}
+
+    exit(0);
+}
 
 //int main()
 //{
@@ -43,11 +54,11 @@
 //    exit(0);
 //}
 
-int main()
-{
+//int main()
+//{
 //    GPS_LOCATION_INFO* last;
-    GPS_LOCATION_INFO* loc = malloc(sizeof(GPS_LOCATION_INFO));
-    int result = GPSGetFixInformation(loc);
-    free(loc);
-    exit(result);
-}
+//    GPS_LOCATION_INFO* loc = malloc(sizeof(GPS_LOCATION_INFO));
+//    int result = GPSGetFixInformation(loc);
+//    free(loc);
+//    exit(result);
+//}

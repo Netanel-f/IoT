@@ -37,6 +37,7 @@
 #define SAMPLE_LINE "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A"
 
 static bool GPS_INITIALIZED = FALSE;
+//static bool GPS_INITIALIZED = TRUE;
 
 typedef __packed struct _GPS_LOCATION_INFO {
     int32_t latitude;
@@ -47,6 +48,7 @@ typedef __packed struct _GPS_LOCATION_INFO {
     uint8_t reserved1 : 3;
     uint8_t num_sats : 4;
     char fixtime[13]; // hhmmssDDMMYY \0
+    char prefix[4];
 } GPS_LOCATION_INFO;
 
 

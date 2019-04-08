@@ -5,6 +5,9 @@
  */
 void GPSInit() {
     GPS_INITIALIZED = SerialInit(PORT, BAUD_RATE);
+    if (!GPS_INITIALIZED) {
+        exit(EXIT_FAILURE);
+    }
 }
 
 /**
@@ -84,6 +87,7 @@ bool parseRMC(char** split_line, GPS_LOCATION_INFO *location){
     }
     strcpy(location->fixtime, split_line[RMC_TIME_FIELD]);
     strcpy(location->fixtime+6, split_line[RMC_DATE_FIELD]);
+    strcpy(location->prefix, "RMC");
     return TRUE;
 }
 
@@ -105,6 +109,7 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
 
     // counter for the fields in split_line
     int i = 0;
+    strcpy(location->prefix, "GGA");
 
     /* time */ //HHMMSS (UTC)
     strcpy(location->fixtime, split_line[i]);

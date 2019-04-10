@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "gps.h"
 
 /**
@@ -68,7 +69,7 @@ tokens_array){
             p++;
         }
     }
-    return TRUE;
+    return true;
 }
 
 /**
@@ -83,12 +84,11 @@ bool parseRMC(char** split_line, GPS_LOCATION_INFO *location){
     // hhmmssDDMMYY
     if (split_line[RMC_TIME_FIELD] == NULL ||
         split_line[RMC_DATE_FIELD] == NULL){
-        return FALSE;
+        return false;
     }
     strcpy(location->fixtime, split_line[RMC_TIME_FIELD]);
     strcpy(location->fixtime+6, split_line[RMC_DATE_FIELD]);
-    strcpy(location->prefix, "RMC");
-    return TRUE;
+    return true;
 }
 
 /**
@@ -103,13 +103,12 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
     // check for empty required fields
     for (int j=0; j<GGA_MIN_REQUIRED_FIELDS; j++){
         if (split_line[j] == NULL){
-            return FALSE;
+            return false;
         }
     }
 
     // counter for the fields in split_line
     int i = 0;
-    strcpy(location->prefix, "GGA");
 
     /* time */ //HHMMSS (UTC)
     strcpy(location->fixtime, split_line[i]);
@@ -180,18 +179,18 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
     // checksum data, begins with *
     i++;
 
-    return TRUE;
+    return true;
 }
 
 
 bool parseRawData(char* buf, GPS_LOCATION_INFO* location){
     int result = 0;
-    int tokens_array_size = max(GGA_FIELDS_NUM, RMC_FIELDS_NUM);
+    int tokens_array_size = GGA_FIELDS_NUM;
     char* tokens_array[tokens_array_size];
     /* GGA Line */
     if (strncmp(buf, GGA_PREFIX, PREFIX_LEN) == 0) {
         result = splitLineToFields(GGA_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
-        if (result == TRUE)
+        if (result == true)
         {
             result = parseGGA(tokens_array, location);
         }
@@ -199,14 +198,14 @@ bool parseRawData(char* buf, GPS_LOCATION_INFO* location){
         /* RMC Line */
     } else if (strncmp(buf, RMC_PREFIX, PREFIX_LEN) == 0) {
         result = splitLineToFields(RMC_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
-        if (result == TRUE)
+        if (result == true)
         {
             result = parseRMC(tokens_array, location);
         }
         return result;
     } else {
         // unimportant line
-        return FALSE;
+        return false;
     }
 }
 
@@ -216,13 +215,10 @@ bool parseRawData(char* buf, GPS_LOCATION_INFO* location){
  * @return TRUE if successful, FALSE otherwise.
  */
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
-
-//    char buf[MAX_NMEA_LEN] = "$GPGGA,123519,4807.038,N,07402.499,W,0,00,,,M,,M,,*5C";
-//    char buf[MAX_NMEA_LEN] = SAMPLE_LINE;
     char buf[MAX_NMEA_LEN] = "";
     uint32_t bytes_read;
 
-    bool result = FALSE;
+    bool result = false;
     while (!result) {
         // call GPSGetReadRaw
         bytes_read = GPSGetReadRaw(buf, MAX_NMEA_LEN);
@@ -232,31 +228,6 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
     }
 
     return result;
-
-//    int result = 0;
-//    int tokens_array_size = max(GGA_FIELDS_NUM, RMC_FIELDS_NUM);
-//    char* tokens_array[tokens_array_size];
-//    /* GGA Line */
-//    if (strncmp(buf, GGA_PREFIX, PREFIX_LEN) == 0) {
-//        result = splitLineToFields(GGA_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
-//        if (result == 0)
-//        {
-//            result = parseGGA(tokens_array, location);
-//        }
-//        return result;
-//    /* RMC Line */
-//    } else if (strncmp(buf, RMC_PREFIX, PREFIX_LEN) == 0) {
-//        result = splitLineToFields(RMC_FIELDS_NUM, PREFIX_LEN, buf, tokens_array);
-//        if (result == 0)
-//        {
-//            result = parseRMC(tokens_array, location);
-//        }
-//        return result;
-//    } else {
-//        // unimportant line
-//        return -1;
-//    }
-//    return 0;
 }
 
 /**
@@ -265,6 +236,6 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
 void GPSDisable() {
     if (GPS_INITIALIZED) {
         SerialDisable();
-        GPS_INITIALIZED = FALSE;
+        GPS_INITIALIZED = false;
     }
 }

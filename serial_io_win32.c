@@ -1,5 +1,6 @@
 
 #include "serial_io.h"
+#include <windows.h>    //TODO fix
 
 static HANDLE hComm;
 static COMMTIMEOUTS original_timeouts;
@@ -31,7 +32,7 @@ bool SerialInit(char* port, unsigned int baud)
     }
     else
     {
-        printf("opening serial port successful\n");
+        printf("opening serial port successful\n");//TODO DELETE
     }
 
     /* Set the Comm state */

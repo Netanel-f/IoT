@@ -2,13 +2,14 @@
 #ifndef IOT_GPS_H
 #define IOT_GPS_H
 
-#include <stdbool.h>
+//#include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include "serial_io.h"
 
-#define PORT "COM5"
+#define PORT "COM4"
 #define BAUD_RATE 9600
-#define MAX_NMEA_LEN 84
+#define MAX_NMEA_LEN 82
 #define RECV_TIMEOUT_MS 5000    // TODO is it correct?
 
 #define __packed __attribute__((__packed__))
@@ -33,11 +34,9 @@
 #define LAT_DEG_DIGITS 2
 #define LONGIT_DEG_DIGITS 3
 
-/* FOR TESTING */ //TODO: remove
-#define SAMPLE_LINE "$GPRMC,123519,A,4807.038,N,01131.000,E,022.4,084.4,230394,003.1,W*6A"
+#define ONE_SEC_IN_MS 1000
 
-static bool GPS_INITIALIZED = FALSE;
-//static bool GPS_INITIALIZED = TRUE;
+static bool GPS_INITIALIZED = false;
 
 typedef __packed struct _GPS_LOCATION_INFO {
     int32_t latitude;
@@ -48,7 +47,6 @@ typedef __packed struct _GPS_LOCATION_INFO {
     uint8_t reserved1 : 3;
     uint8_t num_sats : 4;
     char fixtime[13]; // hhmmssDDMMYY \0
-    char prefix[4];
 } GPS_LOCATION_INFO;
 
 
@@ -71,6 +69,8 @@ uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen);
  * @return 0 if successful, -1 otherwise.
  */
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
+
+
 
 /**
  * Disable GPS connection.

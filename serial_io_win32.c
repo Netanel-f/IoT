@@ -72,7 +72,7 @@ bool SerialInit(char* port, unsigned int baud)
     SetupComm(hComm, 10000, 10000);
 
     /* purge any information in the buffer */
-    PurgeComm(hComm, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
+    PurgeComm(hComm, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);    //TODO do we need to delete TX flags?
 
     return TRUE;
 }

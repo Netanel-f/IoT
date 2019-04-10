@@ -2,7 +2,6 @@
 #ifndef IOT_GPS_H
 #define IOT_GPS_H
 
-//#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include "serial_io.h"

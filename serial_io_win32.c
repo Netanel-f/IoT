@@ -1,6 +1,6 @@
 
 #include "serial_io.h"
-#include <windows.h>    //TODO fix
+#include <windows.h>
 
 static HANDLE hComm;
 static COMMTIMEOUTS original_timeouts;

@@ -17,19 +17,22 @@ int main() {
     }
 
     bool result;
-    while (GPS_INITIALIZED && iteration_counter < 50) {
+    while (GPS_INITIALIZED && iteration_counter < 50) { \\ TODO remove iteration_counter < 50 condition
         iteration_counter++;
         result = GPSGetFixInformation(last_location);
 
-//        // TODO print it + Google Maps format + counter
+        // TODO print it + Google Maps format + counter
+        // Degrees, minutes, and seconds (DMS): 41°24'12.2"N 2°10'26.5"E
+        // Degrees and decimal minutes (DMM): 41 24.2028, 2 10.4418
+        // Decimal degrees (DD): 41.40338, 2.17403
         if (result == TRUE){
-            printf("TYPE: %d\t", last_location->prefix);
+            printf("Iteration #%d\t", last_location->prefix);
             printf("latitude: %d\t", last_location->latitude);
             printf("longitude: %d\t", last_location->longitude);
             printf("altitude: %d\t", last_location->altitude);
             printf("time: %s\n", last_location->fixtime);
 
-            Sleep(1);
+            Sleep(3);
         }
     }
     free(last_location);

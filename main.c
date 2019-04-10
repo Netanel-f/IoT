@@ -2,17 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <sys/unistd.h>
+
 #include "gps.h"
 
 #define PRINT_FORMAT "Iteration #%d \nlatitude: %d\nlongitude: %d\naltitude: %d\ntime: %s\nGoogle Maps: %f, %f\n"
-
-bool print_flag = false;
-
-void alarm_handler(int signum) {
-    print_flag = true;
-    alarm(3);
-}
 
 int main() {
     GPSInit();
@@ -27,17 +20,21 @@ int main() {
 
     bool result;
 
-    signal(SIGALRM, alarm_handler);
-    alarm(3);
+    time_t init_time = time(NULL);
+    time_t current_time;
+    double diff_seconds;
+
     float lat_deg;
     float long_deg;
     while (GPS_INITIALIZED) {
         iteration_counter++;
         result = GPSGetFixInformation(last_location);
 
+        current_time = time(NULL);
+        diff_seconds = difftime(init_time, current_time);
         // Google Maps format
         // Decimal degrees (DD): 41.40338, 2.17403
-        if (result && print_flag){
+        if (result && diff_seconds >= 3){
 
             lat_deg = (last_location->latitude) / 10000000.0;
             long_deg = (last_location->longitude) / 10000000.0;
@@ -52,6 +49,7 @@ int main() {
 
             fflush(stdout);
 
+            init_time = current_time;
         }
     }
     free(last_location);

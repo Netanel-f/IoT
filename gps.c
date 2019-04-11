@@ -1,9 +1,15 @@
+/**************************************************************************//**
+ * @gps.c
+ * @brief Interface for reading and parsing data from the GPS.
+ * @version 0.0.1
+ *  ***************************************************************************/
 #include <stdlib.h>
 #include "gps.h"
 
-/**
- * Initiate GPS connection.
- */
+
+/**************************************************************************//**
+ * @brief Initiate GPS connection.
+ *****************************************************************************/
 void GPSInit() {
     GPS_INITIALIZED = SerialInit(PORT, BAUD_RATE);
     if (!GPS_INITIALIZED) {
@@ -11,12 +17,12 @@ void GPSInit() {
     }
 }
 
-/**
+/**************************************************************************//**
  * Gets line from GPS.
  * @param buf - output buffer to put the line into.
  * @param maxlen - max length of a line.
  * @return number of bytes received.
- */
+ *****************************************************************************/
 uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
     if (GPS_INITIALIZED) {
         return SerialRecv((unsigned char*) buf, maxlen, RECV_TIMEOUT_MS);
@@ -26,14 +32,14 @@ uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
     }
 }
 
-/**
+/**************************************************************************//**
  * Gets a GPS line and splits it into tokens.
  * @param num_of_fields - number of fields in the type of line being split.
  * @param prefix_length - the length of the line prefix.
  * @param buf - the buffer.
  * @param tokens_array - the output token array.
- * @return TRUE if successful, FALSE otherwise.
- */
+ * @return true if successful, false otherwise.
+ *****************************************************************************/
 bool splitLineToFields(int num_of_fields, int prefix_length, char
 buf[MAX_NMEA_LEN], char**
 tokens_array){
@@ -72,13 +78,13 @@ tokens_array){
     return true;
 }
 
-/**
+/**************************************************************************//**
  * Gets array (split_line) with tokens that are RMC's fields,
  * updates location accordingly.
  * @param split_line - RMC line split into tokens.
  * @param location - location struct to be filled.
- * @return TRUE if successful, FALSE otherwise.
- */
+ * @return true if successful, false otherwise.
+ *****************************************************************************/
 bool parseRMC(char** split_line, GPS_LOCATION_INFO *location){
     // only fills date and time in the following order:
     // hhmmssDDMMYY
@@ -86,18 +92,32 @@ bool parseRMC(char** split_line, GPS_LOCATION_INFO *location){
         split_line[RMC_DATE_FIELD] == NULL){
         return false;
     }
-    strcpy(location->fixtime, split_line[RMC_TIME_FIELD]);
-    strcpy(location->fixtime+6, split_line[RMC_DATE_FIELD]);
+//    strcpy(location->fixtime, split_line[RMC_TIME_FIELD]);
+//    strcpy(location->fixtime+6, split_line[RMC_DATE_FIELD]);
+    sprintf(location->fixtime,
+            DATE_FORMAT,
+            split_line[RMC_TIME_FIELD][0],
+            split_line[RMC_TIME_FIELD][1],
+            split_line[RMC_TIME_FIELD][2],
+            split_line[RMC_TIME_FIELD][3],
+            split_line[RMC_TIME_FIELD][4],
+            split_line[RMC_TIME_FIELD][5],
+            split_line[RMC_DATE_FIELD][0],
+            split_line[RMC_DATE_FIELD][1],
+            split_line[RMC_DATE_FIELD][2],
+            split_line[RMC_DATE_FIELD][3],
+            split_line[RMC_DATE_FIELD][4],
+            split_line[RMC_DATE_FIELD][5]);
     return true;
 }
 
-/**
+/**************************************************************************//**
  * Gets array (split_line) with tokens that are GGA's fields,
  * updates location accordingly.
  * @param split_line - GGA line split into tokens.
  * @param location - location struct to be filled.
- * @return TRUE if successful, FALSE otherwise.
- */
+ * @return true if successful, false otherwise.
+ *****************************************************************************/
 bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
 
     // check for empty required fields
@@ -133,7 +153,7 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
 
     /* Longtitude */
     degrees = (split_line[i][0] - '0') * 100 + (split_line[i][1] - '0') * 10 +
-                      (split_line[i][2] - '0');
+              (split_line[i][2] - '0');
     split_line[i] += LONGIT_DEG_DIGITS;
     minutes = (double) atof(split_line[i]) / 60;
     minutes += degrees;
@@ -182,7 +202,13 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
     return true;
 }
 
-
+/**************************************************************************//**
+ *  Gets a buffer and a GPS_LOCATION_INFO struct and fills it with data
+ *  from the buffer.
+ *  @param buf - buffer for the GPS.
+ *  @param location - the GPS info struct.
+ *  @return true if successful, false otherwise.
+ *****************************************************************************/
 bool parseRawData(char* buf, GPS_LOCATION_INFO* location){
     int result = 0;
     int tokens_array_size = GGA_FIELDS_NUM;
@@ -209,11 +235,11 @@ bool parseRawData(char* buf, GPS_LOCATION_INFO* location){
     }
 }
 
-/**
+/**************************************************************************//**
  * Updates location with information from GPSGetReadRaw.
  * @param location - the struct to be filled.
- * @return TRUE if successful, FALSE otherwise.
- */
+ * @return true if successful, false otherwise.
+ *****************************************************************************/
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
     char buf[MAX_NMEA_LEN] = "";
     uint32_t bytes_read;
@@ -230,9 +256,9 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
     return result;
 }
 
-/**
- * Disable GPS connection.
- */
+/**************************************************************************//**
+ * @brief Disable GPS connection.
+ *****************************************************************************/
 void GPSDisable() {
     if (GPS_INITIALIZED) {
         SerialDisable();

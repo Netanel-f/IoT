@@ -5,7 +5,7 @@
 
 #include "gps.h"
 
-#define PRINT_FORMAT "\fIteration #%d \nLatitude:\n%d\nLongitude:\n%d\nAltitude:\n%d\nTime:\n%s\nGoogle Maps:\n%f, %f\n"
+#define PRINT_FORMAT "Iteration #%d \nLatitude:\n%d\nLongitude:\n%d\nAltitude:\n%d\nTime:\n%s\nGoogle Maps:\n%f, %f\n"
 
 int main() {
     GPSInit();

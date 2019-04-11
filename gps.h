@@ -1,12 +1,26 @@
-
-#ifndef IOT_GPS_H
-#define IOT_GPS_H
+/**************************************************************************//**
+ * @gps.h
+ * @brief Interface for reading and parsing data from the GPS.
+ * @version 0.0.1
+ *  ***************************************************************************/
+#ifndef GPS_H_
+#define GPS_H_
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include "serial_io.h"
 
-#define PORT "COM4"
+/**************************************************************************//**
+ * 								DEFS
+*****************************************************************************/
+
+#ifdef _WIN32
+static char* PORT = "COM5";
+#else
+static char* PORT = "3";
+#endif
+
 #define BAUD_RATE 9600
 #define MAX_NMEA_LEN 82
 #define RECV_TIMEOUT_MS 3000
@@ -35,7 +49,7 @@
 
 #define ONE_SEC_IN_MS 1000
 
-static bool GPS_INITIALIZED = false;
+#define DATE_FORMAT "%c%c:%c%c:%c%c %c%c.%c%c.%c%c"
 
 typedef __packed struct _GPS_LOCATION_INFO {
     int32_t latitude;
@@ -45,13 +59,18 @@ typedef __packed struct _GPS_LOCATION_INFO {
     uint8_t valid_fix : 1;
     uint8_t reserved1 : 3;
     uint8_t num_sats : 4;
-    char fixtime[13]; // hhmmssDDMMYY \0
+    char fixtime[18]; // hh:mm:ss DD.MM.YY\0
 } GPS_LOCATION_INFO;
 
+/**************************************************************************//**
+ * 							GLOBAL VARIABLES
+*****************************************************************************/
 
-/**
- * Initiate GPS connection.
- */
+static bool GPS_INITIALIZED = false;
+
+/**************************************************************************//**
+ * @brief Initiate GPS connection.
+*****************************************************************************/
 void GPSInit();
 
 /**
@@ -76,4 +95,4 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
  */
 void GPSDisable();
 
-#endif //IOT_GPS_H
+#endif /* GPS_H_ */

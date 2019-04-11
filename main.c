@@ -5,7 +5,7 @@
 
 #include "gps.h"
 
-#define PRINT_FORMAT "Iteration #%d \nlatitude: %d\nlongitude: %d\naltitude: %d\ntime: %s\nGoogle Maps: %f, %f\n"
+#define PRINT_FORMAT "\fIteration #%d \nLatitude:\n%d\nLongitude:\n%d\nAltitude:\n%d\nTime:\n%s\nGoogle Maps:\n%f, %f\n"
 
 int main() {
     GPSInit();
@@ -20,22 +20,21 @@ int main() {
 
     bool result;
 
-//    time_t init_time = time(NULL);
-//    time_t current_time;
-//    double diff_seconds;
+    time_t init_time = time(NULL);
+    time_t current_time;
+    double diff_seconds;
 
     float lat_deg;
     float long_deg;
     while (GPS_INITIALIZED) {
         iteration_counter++;
         result = GPSGetFixInformation(last_location);
-
-//        current_time = time(NULL);
-//        diff_seconds = difftime(init_time, current_time);
+        current_time = time(NULL);
+        diff_seconds = difftime(current_time, init_time);
         // Google Maps format
         // Decimal degrees (DD): 41.40338, 2.17403
-//        if (result && diff_seconds >= 3){
-        if (result){
+        if (result && diff_seconds >= 3){
+//        if (result){
 
             lat_deg = (last_location->latitude) / 10000000.0;
             long_deg = (last_location->longitude) / 10000000.0;
@@ -50,7 +49,7 @@ int main() {
 
             fflush(stdout);
 
-//            init_time = current_time;
+            init_time = current_time;
         }
     }
     free(last_location);

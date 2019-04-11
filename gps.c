@@ -111,7 +111,7 @@ bool parseGGA(char** split_line, GPS_LOCATION_INFO *location){
     int i = 0;
 
     /* time */ //HHMMSS (UTC)
-    strcpy(location->fixtime, split_line[i]);
+//    strcpy(location->fixtime, split_line[i]);
     i++;
 
     /* latitude */

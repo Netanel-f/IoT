@@ -9,7 +9,7 @@
 #define PORT "COM4"
 #define BAUD_RATE 9600
 #define MAX_NMEA_LEN 82
-#define RECV_TIMEOUT_MS 5000    // TODO is it correct?
+#define RECV_TIMEOUT_MS 3000
 
 #define __packed __attribute__((__packed__))
 

@@ -9,7 +9,9 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 
+volatile uint32_t msTicks;
 
 bool SerialInit(char* port, unsigned int baud);
 unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms);

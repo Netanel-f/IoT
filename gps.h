@@ -47,8 +47,6 @@ static char* PORT = "3";
 #define LAT_DEG_DIGITS 2
 #define LONGIT_DEG_DIGITS 3
 
-#define ONE_SEC_IN_MS 1000
-
 #define DATE_FORMAT "%c%c:%c%c:%c%c %c%c.%c%c.%c%c"
 
 typedef __packed struct _GPS_LOCATION_INFO {

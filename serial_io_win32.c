@@ -6,9 +6,12 @@ static HANDLE hComm;
 static COMMTIMEOUTS original_timeouts;
 static COMMTIMEOUTS timeouts;
 
-/*
- * Initialize serial port.
- */
+/**************************************************************************//**
+ * @brief Initates the serial connection.
+ * @param port - input port
+ * @param baud - baud rate
+ * @return true if succesful.
+ *****************************************************************************/
 bool SerialInit(char* port, unsigned int baud)
 {
     char fullPort[20];
@@ -60,6 +63,12 @@ bool SerialInit(char* port, unsigned int baud)
     return TRUE;
 }
 
+/**************************************************************************//**
+ * @brief Receive data from serial connection.
+ * @param buf - buffer to be filled.
+ * @param maxlen - maximum length of a line of data.
+ * @param timeout_ms - length of the timeout in ms.
+ *****************************************************************************/
 unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms){
     DWORD dwBytes = 0;
     timeouts.ReadTotalTimeoutConstant = timeout_ms;
@@ -76,11 +85,26 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
     return dwBytes > 0 ? dwBytes : SERIAL_TIMEOUT;
 }
 
+/**************************************************************************//**
+ * @brief Empties the input buffer.
+ *****************************************************************************/
 void SerialFlushInputBuff(void){
     FlushFileBuffers(hComm);
 }
 
+/**************************************************************************//**
+ * @brief Disable the serial connection.
+ *****************************************************************************/
 void SerialDisable(){
     SerialFlushInputBuff();
     CloseHandle(hComm); //Closing the Serial Port
+}
+
+/***************************************************************************//**
+ * @brief Delays number of msTick Systicks (typically 1 ms)
+ * @param dlyTicks Number of ticks to delay
+ ******************************************************************************/
+
+void Delay(uint32_t ms){
+
 }

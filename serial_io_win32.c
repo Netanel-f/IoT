@@ -30,10 +30,7 @@ bool SerialInit(char* port, unsigned int baud)
         printf("Error in opening serial port\n");
         return FALSE;
     }
-    else
-    {
-        printf("opening serial port successful\n");//TODO DELETE
-    }
+
 
     /* Set the Comm state */
     GetCommState(hComm, &state);
@@ -46,22 +43,7 @@ bool SerialInit(char* port, unsigned int baud)
     state.ByteSize = 8;
     state.Parity = NOPARITY;
     state.StopBits = ONESTOPBIT;
-//    state.fOutxDsrFlow = FALSE;
-//    state.fDtrControl = DTR_CONTROL_DISABLE; // disable DTR flow control
-//    state.fOutxCtsFlow = FALSE;
-//    state.fRtsControl = RTS_CONTROL_DISABLE;
-//    state.fInX = FALSE;
-//    state.fOutX = FALSE;
-//    state.fBinary = TRUE;
-//    state.fParity = FALSE;
-//    state.fDsrSensitivity = FALSE;
-//    state.fTXContinueOnXoff = TRUE;
-//    state.fNull = FALSE;
-//    state.fAbortOnError = FALSE;
-
-    state.EvtChar = '\n'; // TODO. also are all of the above needed?
-//    state.EofChar = '\n';
-
+    state.EvtChar = '\n';
     SetCommState(hComm, &state);
 
     GetCommTimeouts(hComm, &original_timeouts);
@@ -73,7 +55,7 @@ bool SerialInit(char* port, unsigned int baud)
     SetupComm(hComm, 10000, 10000);
 
     /* purge any information in the buffer */
-    PurgeComm(hComm, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);    //TODO do we need to delete TX flags?
+    PurgeComm(hComm, PURGE_RXABORT | PURGE_RXCLEAR);
 
     return TRUE;
 }

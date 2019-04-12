@@ -15,7 +15,7 @@ volatile uint32_t msTicks;
 
 /**************************************************************************//**
  * @brief Initates the serial connection.
- * @param port - input port
+ * @param port - input port.
  * @param baud - baud rate
  * @return true if succesful.
  *****************************************************************************/

@@ -1,6 +1,7 @@
 
 #include "serial_io.h"
 #include <windows.h>
+#include <time.h>
 
 static HANDLE hComm;
 static COMMTIMEOUTS original_timeouts;
@@ -104,7 +105,12 @@ void SerialDisable(){
  * @brief Delays number of msTick Systicks (typically 1 ms)
  * @param dlyTicks Number of ticks to delay
  ******************************************************************************/
-
 void Delay(uint32_t ms){
-
+    time_t init_time = time(NULL);
+    time_t current_time = time(NULL);
+    double diff_seconds = difftime(current_time, init_time);
+    while (diff_seconds < ms) {
+        current_time = time(NULL);
+        diff_seconds = difftime(current_time, init_time);
+    }
 }

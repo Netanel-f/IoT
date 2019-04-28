@@ -3,6 +3,6 @@ project(IOT)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
 
-set(SOURCE_FILES main.c serial_io.h serial_io_win32.c gps.h gps.c)
+set(EX2_SOURCE_FILES Ex2/main.c Ex2/serial_io.h Ex2/serial_io_win32.c Ex2/gps.h Ex2/gps.c)
 
-add_executable(IOT ${SOURCE_FILES})
+add_executable(IOT_EX2 ${EX2_SOURCE_FILES})

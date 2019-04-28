@@ -50,13 +50,33 @@ bool SerialInit(char* port, unsigned int baud)
     state.ByteSize = 8;
     state.Parity = NOPARITY;
     state.StopBits = ONESTOPBIT;
-    state.EvtChar = '\n';
+//    state.EvtChar = '\n';
+//    state.fDtrControl = DTR_CONTROL_ENABLE;
+    state.fDtrControl = DTR_CONTROL_HANDSHAKE;//
+    state.fOutxDsrFlow = TRUE;//
+    state.fRtsControl = RTS_CONTROL_ENABLE; //
+    state.fOutxCtsFlow = TRUE;//
+    state.fInX = FALSE;
+    state.fOutX = FALSE;
+//    state.fBinary = TRUE;
+//    state.fParity = FALSE;
+    state.fDsrSensitivity = TRUE; //
+    state.fTXContinueOnXoff = TRUE;
+//    state.fNull = FALSE;
+//    state.fAbortOnError = FALSE;
     SetCommState(hComm, &state);
 
     GetCommTimeouts(hComm, &original_timeouts);
     timeouts = original_timeouts;
     timeouts.ReadIntervalTimeout = MAXDWORD;
     timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+
+//    if (!SetCommMask(hComm, EV_DSR | EV_CTS))
+//    {
+//        // Handle the error.
+//        printf("SetCommMask failed with error %d.\n", GetLastError());
+//        return FALSE;
+//    }
 
     /* setup device buffers */
     SetupComm(hComm, 10000, 10000);
@@ -78,7 +98,8 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
     timeouts.ReadTotalTimeoutConstant = timeout_ms;
     SetCommTimeouts(hComm, &timeouts);
 
-    SetCommMask(hComm, EV_RXFLAG);
+//    SetCommMask(hComm, EV_RXFLAG);
+    SetCommMask(hComm, EV_DSR);
     DWORD  dwEventMask;
     WaitCommEvent(hComm, &dwEventMask, NULL);
 
@@ -97,6 +118,11 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
  */
 bool SerialSend(unsigned char *buf, unsigned int size) {
     DWORD numOfBytesWritten = 0;
+
+    SetCommMask(hComm, EV_CTS);
+    DWORD  dwEventMask;
+    WaitCommEvent(hComm, &dwEventMask, NULL);
+
     return WriteFile(hComm, buf, size, &numOfBytesWritten, NULL);
 }
 

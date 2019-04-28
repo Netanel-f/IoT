@@ -19,7 +19,6 @@ int main() {
 
     do {
         SerialRecv(buff, maxlen, timout_ms);
-        SerialFlushInputBuff();
         printf("loop - %s", buff);
     } while (memcmp(buff, systart, (size_t) 13) != 0);
 
@@ -32,7 +31,6 @@ int main() {
     printf("buffer1: %s", buff);
     SerialRecv(buff, maxlen, timout_ms);
     printf("buffer2: %s", buff);
-    SerialFlushInputBuff();
 
     printf("%s", buff);
 

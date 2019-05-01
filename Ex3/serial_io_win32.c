@@ -88,6 +88,7 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
         printf("Error reading from serial port.\n");
         return 0;
     }
+    SerialFlushInputBuff(); // TODO N: is this needed? maybe?
     return dwBytes > 0 ? dwBytes : SERIAL_TIMEOUT;
 }
 

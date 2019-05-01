@@ -14,12 +14,12 @@
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
-#define PORT "COM6"
+#define PORT "COM6" //TODO N: needed?
 #define BAUD_RATE 115200
 
 typedef struct __OPERATOR_INFO {
     char operatorName[20];
-    int operatorCode;
+    int  operatorCode;
     char accessTechnology[4];
 } OPERATOR_INFO;
 

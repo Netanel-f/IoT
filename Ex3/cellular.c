@@ -6,7 +6,8 @@
  * @param port
  */
 void CellularInit(char *port){
-    CELLULAR_INITIALIZED = SerialInit(PORT, BAUD_RATE);
+//    CELLULAR_INITIALIZED = SerialInit(PORT, BAUD_RATE);
+    CELLULAR_INITIALIZED = SerialInit(port, BAUD_RATE);
     if (!CELLULAR_INITIALIZED) {
         exit(EXIT_FAILURE);
     }
@@ -29,20 +30,24 @@ void CellularDisable(){
  * @return Return true if it does, returns false otherwise.
  */
 bool CellularCheckModem(void){
-    // send hello (AT\r\n)
-    unsigned int hello_size = 5;
-    unsigned char hello[5] = "AT\r\n";
-    unsigned int input_size = 6;
-    unsigned char input_buf[6]; // OK/ERROR
-    unsigned int timeout_ms = 100;
+    if (CELLULAR_INITIALIZED) { // TODO N
+        // send hello (AT\r\n)
+        unsigned int hello_size = 5;
+        unsigned char hello[5] = "AT\r\n";
+        unsigned int input_size = 6;
+        unsigned char input_buf[6]; // OK/ERROR
+        unsigned int timeout_ms = 100;
 
-    if (!SerialSend(hello, input_size)){
+        if (!SerialSend(hello, input_size)) {
+            return false;
+        }
+
+        // Wait for response (OK)
+        SerialRecv(input_buf, input_size, timeout_ms);
+        return (strncmp(input_buf, "OK", 2) == 0);
+    } else {
         return false;
     }
-
-    // Wait for response (OK)
-    SerialRecv(input_buf, input_size, timeout_ms);
-    return (strncmp(input_buf, "OK", 2) == 0);
 }
 
 

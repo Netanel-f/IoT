@@ -14,10 +14,7 @@
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
-#define PORT "COM6" //TODO N: needed?
-#define BAUD_RATE 115200
-#define MAX_INCOMING_BUF_SIZE 1000
-#define MAX_OUTGOING_BUF_SIZE 100
+//#define PORT "COM6" //TODO N: needed?
 
 typedef struct __OPERATOR_INFO {
     char operatorName[20];
@@ -29,16 +26,6 @@ typedef struct __OPERATOR_INFO {
  * 							GLOBAL VARIABLES
 *****************************************************************************/
 static bool CELLULAR_INITIALIZED = false;
-static bool REGISTERED = false;
-//static unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE];    // TODO how we deallocate?
-
-// AT_COMMANDS TODO
-unsigned char * AT_CMD_ECHO_OFF;
-// AT RESPONDS
-unsigned char * AT_RES_OK;
-unsigned char * AT_RES_SYSSTART;
-unsigned char * AT_RES_PBREADY;
-
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
 
 /**

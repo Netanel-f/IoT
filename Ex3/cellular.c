@@ -1,41 +1,56 @@
 #include "cellular.h"
 #include "serial_io.h"
 
+bool sendATcommand(unsigned char* command); //TODO declare
+bool waitForATresponse(unsigned char * expected_response, unsigned int response_size);
+/**************************************************************************//**
+ * 								DEFS
+*****************************************************************************/
+#define MODEM_BAUD_RATE 115200
+#define MAX_INCOMING_BUF_SIZE 1000
+#define MAX_OUTGOING_BUF_SIZE 100
+
+
+/*****************************************************************************
+ * 							GLOBAL VARIABLES
+*****************************************************************************/
+static bool REGISTERED = false;
+//static unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE];    // TODO how we deallocate?
+unsigned int recv_timeout_ms = 100;
+
+//TODO CMDS:
+// here or at header file? static ?
+// SAPIR do I need do deallocate? how we deallocate?
+
+// AT_COMMANDS
+unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
+
+// AT RESPONDS
+unsigned char AT_RES_OK[] = "\r\nOK\r\n";
+unsigned char AT_RES_SYSSTART[] = "\r\n^SYSSTART\r\n";
+unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
+
+
+
+
 /**
  * Initialize whatever is needed to start working with the cellular modem (e.g. the serial port).
  * @param port
  */
 void CellularInit(char *port){
-//    CELLULAR_INITIALIZED = SerialInit(PORT, BAUD_RATE);
-    CELLULAR_INITIALIZED = SerialInit(port, BAUD_RATE);
+    CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
     if (!CELLULAR_INITIALIZED) {
         exit(EXIT_FAILURE);
     }
 
-    unsigned char systart[] = "\r\n^SYSSTART\r\n";
-    unsigned char pb_ready[] = "\r\n+PBREADY\r\n";
-    unsigned char stopecho[] = "ATE0\r\n";
-    unsigned char ok[] = "\r\nOK\r\n";
-    unsigned char test_buff[MAX_INCOMING_BUF_SIZE] = "";
-    unsigned int timout_ms = 100;
-    unsigned int zero = 0;
-
     // check modem responded with ^+PBREADY
-    do {
-        memset(test_buff, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
-        SerialRecv(test_buff, MAX_INCOMING_BUF_SIZE, timout_ms);
-    } while (memcmp(test_buff, pb_ready, (size_t) 12) != 0); //TODO MAKE 13 CONST
+    waitForATresponse(AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
 
     // set modem echo off
-    if (!SerialSend(stopecho, sizeof("ATE0\r\n"))) {
-        fprintf(stderr, "send error\n");
-    }
+    while (!sendATcommand(AT_CMD_ECHO_OFF));
+
     // verify echo off
-    memset(test_buff, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
-    SerialRecv(test_buff, MAX_INCOMING_BUF_SIZE, timout_ms);
-    if (memcmp(test_buff, ok, (size_t) 6) != 0) {
-        exit(EXIT_FAILURE);
-    }
+    waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
 }
 
 
@@ -205,13 +220,23 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 }
 
 bool sendATcommand(unsigned char* command){
-    int command_size = sizeof(command); //TODO: is this ok
+    unsigned int command_size = sizeof(command) - 1;
     if (!SerialSend(command, command_size)){
         return false;
     }
     Delay(100); // TODO
     return true;
 }
+
+bool waitForATresponse(unsigned char * expected_response, unsigned int response_size) {
+    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+    do {
+        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+    } while (memcmp(incoming_buffer, expected_response, response_size) != 0);
+    return true;
+}
+
 
 bool getATresponse(){
     unsigned char buf[200] = ""; //TODO: change size

@@ -7,10 +7,12 @@
 #include "cellular.h"
 #include "string.h"
 
+#define MODEM_PORT "COM5"
+
 #define PRINT_FORMAT "Iteration #%d \nLatitude:\n%d\nLongitude:\n%d\nAltitude:\n%d\nTime:\n%s\nGoogle Maps:\n%f, %f\n"
 int main() {
     // Initialize the cellular modems.
-    CellularInit(PORT);
+    CellularInit(MODEM_PORT);
     // Makes sure it’s responding to AT commands.
     while (CellularCheckModem()) {
         Delay(10);

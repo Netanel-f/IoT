@@ -40,20 +40,21 @@ unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
  * @param port
  */
 void CellularInit(char *port){
-    // TODO do we need to check if it already ON?
-    CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
     if (!CELLULAR_INITIALIZED) {
-        exit(EXIT_FAILURE);
+        CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
+        if (!CELLULAR_INITIALIZED) {
+            exit(EXIT_FAILURE);
+        }
+
+        // check modem responded with ^+PBREADY
+        waitForATresponse(AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
+
+        // set modem echo off
+        while (!sendATcommand(AT_CMD_ECHO_OFF));
+
+        // verify echo off
+        waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
     }
-
-    // check modem responded with ^+PBREADY
-    waitForATresponse(AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
-
-    // set modem echo off
-    while (!sendATcommand(AT_CMD_ECHO_OFF));
-
-    // verify echo off
-    waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
 }
 
 
@@ -83,7 +84,7 @@ bool CellularCheckModem(void){
         // send "hello" (AT\r\n)
         while (!sendATcommand(AT_CMD_AT));
 
-        // verify modem reponse
+        // verify modem response
         return waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
     } else {
         return false;
@@ -183,6 +184,7 @@ bool CellularSetOperator(int mode, char *operatorName){
  * Returns true and populates opList and opsFound if the command succeeded.
  */
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
+    //TODO implement
     return false;
 }
 

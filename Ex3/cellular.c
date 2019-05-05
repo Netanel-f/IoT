@@ -24,6 +24,7 @@ unsigned int recv_timeout_ms = 100;
 
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
+unsigned char AT_CMD_AT[] = "AT\r\n";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
@@ -79,35 +80,11 @@ void CellularDisable(){
  */
 bool CellularCheckModem(void){
     if (CELLULAR_INITIALIZED) {
-        // send hello (AT\r\n)
-        //TODO THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
-        unsigned char ok[] = "\r\nOK\r\n";
-        unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-        unsigned int timout_ms = 100;
-        unsigned int zero = 0;
-        // send hello
-        unsigned char hello_cmd[] = "AT\r\n";
-        if (!SerialSend(hello_cmd, sizeof(hello_cmd))) {
-            fprintf(stderr, "send error\n");
-        }
-        // verify modem reponse
-        memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
-        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
-        return (memcmp(incoming_buffer, ok, (size_t) sizeof(ok)) == 0);
+        // send "hello" (AT\r\n)
+        while (!sendATcommand(AT_CMD_AT));
 
-//        unsigned int hello_size = 5;
-//        unsigned char hello[5] = "AT\r\n";
-//        unsigned int input_size = 6;
-//        unsigned char input_buf[MAX_INCOMING_BUF_SIZE]; // OK/ERROR
-//        unsigned int timeout_ms = 100;
-//
-//        if (!SerialSend(hello, input_size)) {
-//            return false;
-//        }
-//
-//         Wait for response (OK)
-//        SerialRecv(input_buf, input_size, timeout_ms);
-//        return (strncmp(input_buf, "OK", 2) == 0);
+        // verify modem reponse
+        return waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
     } else {
         return false;
     }

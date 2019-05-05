@@ -30,6 +30,7 @@ typedef struct __OPERATOR_INFO {
 *****************************************************************************/
 static bool CELLULAR_INITIALIZED = false;
 static bool REGISTERED = false;
+//static unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE];    // TODO how we deallocate?
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
 
 /**

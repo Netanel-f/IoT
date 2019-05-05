@@ -31,7 +31,6 @@ void CellularInit(char *port){
         fprintf(stderr, "send error\n");
     }
     // verify echo off
-
     memset(test_buff, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
     SerialRecv(test_buff, MAX_INCOMING_BUF_SIZE, timout_ms);
     if (memcmp(test_buff, ok, (size_t) 6) != 0) {
@@ -44,6 +43,24 @@ void CellularInit(char *port){
  * Deallocate / close whatever resources CellularInit() allocated.
  */
 void CellularDisable(){
+    //TODO do we need to shutdown the modem?
+//    // THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
+//    unsigned char ok[] = "\r\nOK\r\n";
+//    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+//    unsigned int timout_ms = 100;
+//    unsigned int zero = 0;
+//    // shut down modem
+//    unsigned char shutdown_cmd[] = "AT^SMSO\r\n";
+//    if (!SerialSend(shutdown_cmd, sizeof("AT^SMSO\r\n"))) {
+//        fprintf(stderr, "send error\n");
+//    }
+//    // verify modem off
+//    memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
+//    SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
+//    if (memcmp(incoming_buffer, ok, (size_t) 6) != 0) {
+//        exit(EXIT_FAILURE);
+//    }
+//    // TODO if we make this code global we should de allocate buffers.
     if (CELLULAR_INITIALIZED) {
         SerialDisable();
         CELLULAR_INITIALIZED = false;
@@ -56,21 +73,36 @@ void CellularDisable(){
  * @return Return true if it does, returns false otherwise.
  */
 bool CellularCheckModem(void){
-    if (CELLULAR_INITIALIZED) { // TODO N
+    if (CELLULAR_INITIALIZED) {
         // send hello (AT\r\n)
-        unsigned int hello_size = 5;
-        unsigned char hello[5] = "AT\r\n";
-        unsigned int input_size = 6;
-        unsigned char input_buf[6]; // OK/ERROR
-        unsigned int timeout_ms = 100;
-
-        if (!SerialSend(hello, input_size)) {
-            return false;
+        //TODO THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
+        unsigned char ok[] = "\r\nOK\r\n";
+        unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+        unsigned int timout_ms = 100;
+        unsigned int zero = 0;
+        // send hello
+        unsigned char hello_cmd[] = "AT\r\n";
+        if (!SerialSend(hello_cmd, sizeof(hello_cmd))) {
+            fprintf(stderr, "send error\n");
         }
+        // verify modem reponse
+        memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
+        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
+        return (memcmp(incoming_buffer, ok, (size_t) sizeof(ok)) == 0);
 
-        // Wait for response (OK)
-        SerialRecv(input_buf, input_size, timeout_ms);
-        return (strncmp(input_buf, "OK", 2) == 0);
+//        unsigned int hello_size = 5;
+//        unsigned char hello[5] = "AT\r\n";
+//        unsigned int input_size = 6;
+//        unsigned char input_buf[MAX_INCOMING_BUF_SIZE]; // OK/ERROR
+//        unsigned int timeout_ms = 100;
+//
+//        if (!SerialSend(hello, input_size)) {
+//            return false;
+//        }
+//
+//         Wait for response (OK)
+//        SerialRecv(input_buf, input_size, timeout_ms);
+//        return (strncmp(input_buf, "OK", 2) == 0);
     } else {
         return false;
     }

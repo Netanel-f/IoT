@@ -118,6 +118,23 @@ bool CellularCheckModem(void){
 
  */
 bool CellularGetRegistrationStatus(int *status){
+    // TODO: on init we should set  AT+COPS= 1 / 2 to set manual operator select?
+    //TODO THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
+    unsigned char at_creg_command[] = "AT+CREG?\r\n";
+    unsigned char ok[] = "\r\nOK\r\n";
+    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    unsigned int timout_ms = 100;
+    unsigned int zero = 0;
+    // send creg command
+    if (!SerialSend(at_creg_command, sizeof(at_creg_command))) {
+        fprintf(stderr, "send error\n");
+    }
+    // get answer
+    memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
+    SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
+
+    // TODO parse
+    // return bool and set status.
     return false;
 }
 

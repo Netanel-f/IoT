@@ -16,6 +16,8 @@
 *****************************************************************************/
 #define PORT "COM6" //TODO N: needed?
 #define BAUD_RATE 115200
+#define MAX_INCOMING_BUF_SIZE 1000
+#define MAX_OUTGOING_BUF_SIZE 100
 
 typedef struct __OPERATOR_INFO {
     char operatorName[20];

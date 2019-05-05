@@ -11,6 +11,32 @@ void CellularInit(char *port){
     if (!CELLULAR_INITIALIZED) {
         exit(EXIT_FAILURE);
     }
+
+    unsigned char systart[] = "\r\n^SYSSTART\r\n";
+    unsigned char pb_ready[] = "\r\n+PBREADY\r\n";
+    unsigned char stopecho[] = "ATE0\r\n";
+    unsigned char ok[] = "\r\nOK\r\n";
+    unsigned char test_buff[MAX_INCOMING_BUF_SIZE] = "";
+    unsigned int timout_ms = 100;
+    unsigned int zero = 0;
+
+    // check modem responded with ^+PBREADY
+    do {
+        memset(test_buff, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
+        SerialRecv(test_buff, MAX_INCOMING_BUF_SIZE, timout_ms);
+    } while (memcmp(test_buff, pb_ready, (size_t) 12) != 0); //TODO MAKE 13 CONST
+
+    // set modem echo off
+    if (!SerialSend(stopecho, sizeof("ATE0\r\n"))) {
+        fprintf(stderr, "send error\n");
+    }
+    // verify echo off
+
+    memset(test_buff, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
+    SerialRecv(test_buff, MAX_INCOMING_BUF_SIZE, timout_ms);
+    if (memcmp(test_buff, ok, (size_t) 6) != 0) {
+        exit(EXIT_FAILURE);
+    }
 }
 
 

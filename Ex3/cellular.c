@@ -39,6 +39,7 @@ unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
  * @param port
  */
 void CellularInit(char *port){
+    // TODO do we need to check if it already ON?
     CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
     if (!CELLULAR_INITIALIZED) {
         exit(EXIT_FAILURE);
@@ -59,12 +60,13 @@ void CellularInit(char *port){
  * Deallocate / close whatever resources CellularInit() allocated.
  */
 void CellularDisable(){
-    // shut down modem TODO do we need to shutdown the modem?
-    while (!sendATcommand(AT_CMD_SHUTDOWN));
-
-    // verify modem off
-    waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);//TODO NEED TO CHECK FOR ERROR
     if (CELLULAR_INITIALIZED) {
+        // shut down modem TODO do we need to shutdown the modem?
+        while (!sendATcommand(AT_CMD_SHUTDOWN));
+
+        // verify modem off
+        waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);//TODO NEED TO CHECK FOR ERROR
+
         SerialDisable();
         CELLULAR_INITIALIZED = false;
     }

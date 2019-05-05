@@ -24,6 +24,7 @@ unsigned int recv_timeout_ms = 100;
 
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
+unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
 unsigned char AT_RES_OK[] = "\r\nOK\r\n";
@@ -58,24 +59,11 @@ void CellularInit(char *port){
  * Deallocate / close whatever resources CellularInit() allocated.
  */
 void CellularDisable(){
-    //TODO do we need to shutdown the modem?
-//    // THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
-//    unsigned char ok[] = "\r\nOK\r\n";
-//    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-//    unsigned int timout_ms = 100;
-//    unsigned int zero = 0;
-//    // shut down modem
-//    unsigned char shutdown_cmd[] = "AT^SMSO\r\n";
-//    if (!SerialSend(shutdown_cmd, sizeof("AT^SMSO\r\n"))) {
-//        fprintf(stderr, "send error\n");
-//    }
-//    // verify modem off
-//    memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
-//    SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
-//    if (memcmp(incoming_buffer, ok, (size_t) 6) != 0) {
-//        exit(EXIT_FAILURE);
-//    }
-//    // TODO if we make this code global we should de allocate buffers.
+    // shut down modem TODO do we need to shutdown the modem?
+    while (!sendATcommand(AT_CMD_SHUTDOWN));
+
+    // verify modem off
+    waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);//TODO NEED TO CHECK FOR ERROR
     if (CELLULAR_INITIALIZED) {
         SerialDisable();
         CELLULAR_INITIALIZED = false;

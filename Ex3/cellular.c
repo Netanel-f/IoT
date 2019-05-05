@@ -148,6 +148,10 @@ bool CellularGetRegistrationStatus(int *status){
 
  */
 bool CellularGetSignalQuality(int *csq){
+    // TODO after init and registration
+    // AT+CSQ
+    // response : +CSQ <rssi>,<ber> followed by OK
+    // rssi: 0,1,2-30,31,99, ber: 0-7,99unknown
     return false;
 }
 
@@ -163,6 +167,19 @@ bool CellularGetSignalQuality(int *csq){
  * @return Returns true if the command was successful, returns false otherwise.
  */
 bool CellularSetOperator(int mode, char *operatorName){
+    // TODO: on init we should set  AT+COPS=1 / 2
+    // 1: Manual operator selection.
+    // Write command requires <opName> in numeric format, i.e. <format> shall be 2.
+    // 2: Manually deregister from network and remain unregistered until <mode>=0 or
+    // 1 or 4 is selected. Please keep in mind that the AT+COPS write command is SIM PIN protected.
+    // When SIM PIN is disabled or after SIM PIN authentication has completed and
+    // "+PBREADY" URC has shown up the powerup default <mode>=2 automatically
+    // changes to <mode>=0, causing the ME to select a network.
+
+    //TODO: AT+COPS? will return something like:
+    // +COPS: 0,0,"IL Pelephone",2
+    //
+    // OK
 
     if (mode == REG_AUTOMATICALLY){
 

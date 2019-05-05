@@ -31,6 +31,14 @@ typedef struct __OPERATOR_INFO {
 static bool CELLULAR_INITIALIZED = false;
 static bool REGISTERED = false;
 //static unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE];    // TODO how we deallocate?
+
+// AT_COMMANDS TODO
+unsigned char * AT_CMD_ECHO_OFF;
+// AT RESPONDS
+unsigned char * AT_RES_OK;
+unsigned char * AT_RES_SYSSTART;
+unsigned char * AT_RES_PBREADY;
+
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
 
 /**
@@ -70,17 +78,6 @@ bool CellularGetRegistrationStatus(int *status);
  */
 bool CellularGetSignalQuality(int *csq);
 
-
-/**
- * @param csq
- * @return Returns false if the modem did not respond or responded with an error
- * (note, CSQ=99 is also an error!)
- * Returns true if the command was successful and the signal quality was obtained from the modem.
- * In that case, the csq parameter will be populated with the numeric value between -113dBm and
- * -51dBm.
-
- */
-bool CellularGetSignalQuality(int *csq);
 
 /**
  * Forces the modem to register/deregister with a network.

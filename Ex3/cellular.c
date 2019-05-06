@@ -29,6 +29,7 @@ unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
 unsigned char AT_RES_OK[] = "\r\nOK\r\n";
+unsigned char AT_RES_ERROR[] = "\r\nERROR\r\n";
 unsigned char AT_RES_SYSSTART[] = "\r\n^SYSSTART\r\n";
 unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
 
@@ -40,12 +41,16 @@ unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
  * @param port
  */
 void CellularInit(char *port){
+    printf("Initializing Cellular... ");
+
     if (!CELLULAR_INITIALIZED) {
         CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
         if (!CELLULAR_INITIALIZED) {
+            printf("Initialization FAILED\n");
             exit(EXIT_FAILURE);
         }
 
+        printf("Initialization SUCCEEDED\n");
         // check modem responded with ^+PBREADY
         waitForATresponse(AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
 
@@ -80,13 +85,21 @@ void CellularDisable(){
  * @return Return true if it does, returns false otherwise.
  */
 bool CellularCheckModem(void){
+    printf("Checking modem... ");
     if (CELLULAR_INITIALIZED) {
         // send "hello" (AT\r\n)
         while (!sendATcommand(AT_CMD_AT));
 
         // verify modem response
-        return waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
+        if (waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+            printf("modem is ready!\n");
+            return true;
+        } else {
+            printf("modem is NOT ready!\n");
+            return false;
+        }
     } else {
+        printf("modem wasn't initialized!\n");
         return false;
     }
 }

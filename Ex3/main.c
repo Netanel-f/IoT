@@ -21,6 +21,7 @@ int main() {
     int max_operators = 10; //TODO decide
     int num_operators_found = 0;
     OPERATOR_INFO operators_info[max_operators];
+    printf("Finding all available cellular operators.\n");
     while (num_operators_found == 0) {
         CellularGetOperators(operators_info, max_operators, &num_operators_found);
     }

@@ -11,7 +11,7 @@ int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops
 *****************************************************************************/
 #define MODEM_BAUD_RATE 115200
 #define MAX_INCOMING_BUF_SIZE 1000
-
+bool DEBUG = true;// TODO remove
 
 /*****************************************************************************
  * 							GLOBAL VARIABLES

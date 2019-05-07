@@ -21,7 +21,6 @@ typedef struct __OPERATOR_INFO {
     char accessTechnology[4];
 } OPERATOR_INFO;
 
-bool DEBUG = true;// TODO remove
 /**************************************************************************//**
  * 							GLOBAL VARIABLES
 *****************************************************************************/

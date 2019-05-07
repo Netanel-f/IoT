@@ -50,15 +50,13 @@ void CellularInit(char *port){
             exit(EXIT_FAILURE);
         }
 
-        printf("Initialization SUCCEEDED\n");
-        //TODO maybe need timeout if device is OFF?
-
 
         // check modem responded with ^+PBREADY
         unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
         waitForATresponse(token_array, AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
 
         bool echo_off = false;
+        printf("turning echo off... ");
         while (!echo_off) {
             // set modem echo off
             while (!sendATcommand(AT_CMD_ECHO_OFF, sizeof(AT_CMD_ECHO_OFF) - 1));
@@ -66,6 +64,9 @@ void CellularInit(char *port){
             // verify echo off
             echo_off = waitForOK();
         }
+
+        printf("Initialization SUCCEEDED\n");
+        //TODO maybe need timeout if device is OFF?
     }
 }
 
@@ -227,7 +228,9 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 
     unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
     if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+
         // TODO parse "+COPS: (....) AND TIMEOUT
+        // "+COPS: (1,\"Orange IL\",\"OrangeIL\",\"42501\",2),(1,\"IL Pelephone\",\"PCL\",\"42503\",2),(1,\"\",\"\",\"42507\",2),(1,\"Orange IL\",\"OrangeIL\",\"42501\",0),(1,\"JAWWAL-PALESTINE\",\"JAWWAL\",\"42505\",0)"
         // fill results
         return true;
 
@@ -240,7 +243,7 @@ bool sendATcommand(unsigned char* command, unsigned int command_size){
     if (!SerialSend(command, command_size)){
         return false;
     }
-    Delay(100); // TODO
+//    Delay(100); // TODO
     return true;
 }
 
@@ -256,21 +259,42 @@ bool waitForOK() {
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
 
-    return memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0;
+    return memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) == 0;
 }
+
 
 bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size) {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+//    memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
+//    memcpy(temp_buffer, incoming_buffer, MAX_INCOMING_BUF_SIZE);
+//    memset(temp_buffer, 0, 1);
+    unsigned int bytes_received = 0;
     int num_of_tokens = 0;
 
+
     do {
-        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+        memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
-    } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 ||
+//        printf("waiting for response bytes: %d str: %s\n", bytes_received, incoming_buffer);
+    } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
 
-    return memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0;
+    num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
+
+
+//    do {
+//        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
+//        memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+//        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+//        num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
+//        printf("waiting for response bytes: %d str: %s\n", bytes_received, incoming_buffer);
+//    } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
+//             memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
+//
+    return memcmp(token_array[num_of_tokens-1], expected_response, response_size) == 0;
 }
 
 
@@ -288,7 +312,7 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
     int i=0;
     token = strtok(buffer, delimeter);
     while (token != NULL) {
-        tokens_array[i++] = (unsigned char *)token;
+        tokens_array[i++] = (unsigned char *)token; //TODO
         token = strtok(NULL, delimeter);
     }
     return i;

@@ -108,7 +108,7 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
         printf("Error reading from serial port.\n");
         return 0;
     }
-    SerialFlushInputBuff(); // TODO N: is this needed? maybe?
+//    SerialFlushInputBuff(); // TODO N: is this needed? maybe?
     return dwBytes > 0 ? dwBytes : SERIAL_TIMEOUT;
 }
 
@@ -120,7 +120,7 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
  */
 bool SerialSend(unsigned char *buf, unsigned int size) {
     DWORD numOfBytesWritten = 0;
-    SerialFlushInputBuff();
+//    SerialFlushInputBuff();
     return WriteFile(hComm, buf, size, &numOfBytesWritten, NULL);
 }
 

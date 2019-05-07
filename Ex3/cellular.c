@@ -5,6 +5,7 @@ bool sendATcommand(unsigned char* command, unsigned int command_size); //TODO de
 bool waitForOK();
 bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size);
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array);
+int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops);
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
@@ -236,15 +237,19 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 
     unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
     if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
-
         // TODO parse "+COPS: (....) AND TIMEOUT
         // "+COPS: (1,\"Orange IL\",\"OrangeIL\",\"42501\",2),(1,\"IL Pelephone\",\"PCL\",\"42503\",2),(1,\"\",\"\",\"42507\",2),(1,\"Orange IL\",\"OrangeIL\",\"42501\",0),(1,\"JAWWAL-PALESTINE\",\"JAWWAL\",\"42505\",0)"
-        // fill results
-        return true;
+        char * operators = strtok(token_array[0], "+COPS: "); // thirs remove "+COPS: "
 
-    } else {
-        return false;
+        int num_of_found_ops = splitOperators(operators, opList, maxops);
+        // fill results
+        if (num_of_found_ops != 0) {
+            *numOpsFound = num_of_found_ops;
+            return true;
+        }
     }
+
+    return false;
 }
 
 bool sendATcommand(unsigned char* command, unsigned int command_size){
@@ -310,4 +315,52 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
         token = strtok(NULL, delimiter);
     }
     return i;
+}
+
+int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops) {
+    // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
+    //numeric <opName>, <AcT>)s ]
+    const char op_start_delimiter[] = "(";
+    const char op_field_delimiter[] = ",";
+    char * op_token;
+    int op_index = 0;
+    op_token = strtok(operators, op_start_delimiter);
+
+    while (op_token != NULL) {
+
+        if (op_index >= max_ops) {
+            break;
+        }
+
+        int field_index = 0;
+        char * field_token = strtok(op_token, op_field_delimiter);
+
+        while (field_token != NULL) {
+            if (field_index == 1) {
+                // long alphanumeric <opName>
+                char op_name[20];
+                strncpy(op_name, field_token, strlen(field_token) - 1);
+                strncpy(op_name, &op_name[1], strlen(op_name) - 1);
+                strcpy(opList[op_index].operatorName, op_name);
+            } else if (field_index == 3) {
+                //numeric <opName>
+                char str_op_code[10];
+                strncpy(str_op_code, field_token, strlen(field_token) - 1);
+                strncpy(str_op_code, &str_op_code[1], strlen(str_op_code) - 1);
+                int op_code = atoi(str_op_code);
+                opList[op_index].operatorCode = op_code;
+            } else if (field_index == 4) {
+                // <AcT>
+                strncpy(opList[op_index].accessTechnology, field_token, strlen(field_token) - 1);
+            }
+
+            field_token = strtok(NULL, op_field_delimiter);
+            field_index++;
+        }
+
+        op_token = strtok(NULL, op_start_delimiter);
+        op_index++;
+    }
+
+    return op_index;
 }

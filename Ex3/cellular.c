@@ -301,13 +301,13 @@ bool getATresponse(){
 
 
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array) {
-    const char delimeter[] = "\r\n";
+    const char delimiter[] = "\r\n";
     char * token;
     int i=0;
-    token = strtok(buffer, delimeter);
+    token = strtok(buffer, delimiter);
     while (token != NULL) {
         tokens_array[i++] = (unsigned char *)token; //TODO
-        token = strtok(NULL, delimeter);
+        token = strtok(NULL, delimiter);
     }
     return i;
 }

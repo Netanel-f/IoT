@@ -1,37 +1,37 @@
 #include "cellular.h"
 #include "serial_io.h"
 
-bool sendATcommand(unsigned char* command); //TODO declare
-bool waitForATresponse(unsigned char * expected_response, unsigned int response_size);
+bool sendATcommand(unsigned char* command, unsigned int command_size); //TODO declare
+bool waitForOK();
+bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size);
+int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array);
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
 #define MODEM_BAUD_RATE 115200
 #define MAX_INCOMING_BUF_SIZE 1000
-#define MAX_OUTGOING_BUF_SIZE 100
 
 
 /*****************************************************************************
  * 							GLOBAL VARIABLES
 *****************************************************************************/
-static bool REGISTERED = false;
-//static unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE];    // TODO how we deallocate?
 unsigned int recv_timeout_ms = 100;
 
-//TODO CMDS:
-// here or at header file? static ?
-// SAPIR do I need do deallocate? how we deallocate?
-
+unsigned char AT_CMD_SUFFIX[] = "\r\n";
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
 unsigned char AT_CMD_AT[] = "AT\r\n";
+unsigned char AT_CMD_COPS_TEST[] = "AT+COPS=?\r\n";
+const unsigned char AT_CMD_COPS_WRITE_PREFIX[] = "AT+COPS=";
+unsigned char AT_CMD_CREG_READ[] = "AT+CREG?\n";
+unsigned char AT_CMD_CSQ[] = "AT+CSQ\r\n";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
-unsigned char AT_RES_OK[] = "\r\nOK\r\n";
-unsigned char AT_RES_ERROR[] = "\r\nERROR\r\n";
-unsigned char AT_RES_SYSSTART[] = "\r\n^SYSSTART\r\n";
-unsigned char AT_RES_PBREADY[] = "\r\n+PBREADY\r\n";
+unsigned char AT_RES_OK[] = "OK";
+unsigned char AT_RES_ERROR[] = "ERROR";
+unsigned char AT_RES_SYSSTART[] = "^SYSSTART";
+unsigned char AT_RES_PBREADY[] = "+PBREADY";
 
 
 
@@ -51,14 +51,21 @@ void CellularInit(char *port){
         }
 
         printf("Initialization SUCCEEDED\n");
+        //TODO maybe need timeout if device is OFF?
+
+
         // check modem responded with ^+PBREADY
-        waitForATresponse(AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
+        unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+        waitForATresponse(token_array, AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1);
 
-        // set modem echo off
-        while (!sendATcommand(AT_CMD_ECHO_OFF));
+        bool echo_off = false;
+        while (!echo_off) {
+            // set modem echo off
+            while (!sendATcommand(AT_CMD_ECHO_OFF, sizeof(AT_CMD_ECHO_OFF) - 1));
 
-        // verify echo off
-        waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);
+            // verify echo off
+            echo_off = waitForOK();
+        }
     }
 }
 
@@ -69,10 +76,10 @@ void CellularInit(char *port){
 void CellularDisable(){
     if (CELLULAR_INITIALIZED) {
         // shut down modem TODO do we need to shutdown the modem?
-        while (!sendATcommand(AT_CMD_SHUTDOWN));
+        while (!sendATcommand(AT_CMD_SHUTDOWN, sizeof(AT_CMD_SHUTDOWN) - 1));
 
         // verify modem off
-        waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1);//TODO NEED TO CHECK FOR ERROR
+        waitForOK(); //TODO NEED TO CHECK FOR ERROR
 
         SerialDisable();
         CELLULAR_INITIALIZED = false;
@@ -88,10 +95,11 @@ bool CellularCheckModem(void){
     printf("Checking modem... ");
     if (CELLULAR_INITIALIZED) {
         // send "hello" (AT\r\n)
-        while (!sendATcommand(AT_CMD_AT));
+        while (!sendATcommand(AT_CMD_AT, sizeof(AT_CMD_AT) - 1));
 
         // verify modem response
-        if (waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+//        if (waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+        if (waitForOK()) {
             printf("modem is ready!\n");
             return true;
         } else {
@@ -114,23 +122,16 @@ bool CellularCheckModem(void){
 
  */
 bool CellularGetRegistrationStatus(int *status){
-    // TODO: on init we should set  AT+COPS= 1 / 2 to set manual operator select?
-    //TODO THIS IS PART OF CODE WE SHOULD MAKE GLOBAL
-    unsigned char at_creg_command[] = "AT+CREG?\r\n";
-    unsigned char ok[] = "\r\nOK\r\n";
-    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    unsigned int timout_ms = 100;
-    unsigned int zero = 0;
-    // send creg command
-    if (!SerialSend(at_creg_command, sizeof(at_creg_command))) {
-        fprintf(stderr, "send error\n");
+    // AT+CREG?
+    // response: +CREG: <Mode>, <regStatus>[, <netLac>, <netCellId>[, <AcT>]] followed by OK
+    if (sendATcommand(AT_CMD_CREG_READ, sizeof(AT_CMD_CREG_READ) - 1)) {
+        unsigned char * token_array[5] = {};
+        if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+            // TODO SPLIT TOKEN ARRAY BY ,
+            *status = atoi(token_array[1]);
+            return true;
+        }
     }
-    // get answer
-    memset(incoming_buffer, zero, MAX_INCOMING_BUF_SIZE); // TODO maybe implement as part of serial receive?
-    SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timout_ms);
-
-    // TODO parse
-    // return bool and set status.
     return false;
 }
 
@@ -148,7 +149,24 @@ bool CellularGetSignalQuality(int *csq){
     // AT+CSQ
     // response : +CSQ <rssi>,<ber> followed by OK
     // rssi: 0,1,2-30,31,99, ber: 0-7,99unknown
+
+    // send AT+CSQ
+    if (sendATcommand(AT_CMD_CSQ, sizeof(AT_CMD_CSQ) - 1)) {
+        unsigned char * token_array[5] = {};
+        if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+            // TODO SPLIT TOKEN ARRAY BY ,
+            if (strcmp(token_array[0], "99") != 0) {
+                // -113 + 2* rssi
+                int rssi = atoi(token_array[0]);
+
+                *csq = -113 + (2 * rssi);
+                return true;
+            }
+        }
+    }
     return false;
+
+
 }
 
 /**
@@ -176,14 +194,21 @@ bool CellularSetOperator(int mode, char *operatorName){
     // +COPS: 0,0,"IL Pelephone",2
     //
     // OK
+    unsigned char command_to_send[] = ""; //TODO magic
+    if (mode == REG_AUTOMATICALLY || mode == DEREGISTER){
+        sprintf(command_to_send, "%s%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, AT_CMD_SUFFIX);
 
-    if (mode == REG_AUTOMATICALLY){
+        // send command
+        while(!sendATcommand(command_to_send, sizeof(command_to_send) - 1));
 
     } else if (mode == SPECIFIC_OP){
 
-    } else if (mode == DEREGISTER) {
+        int act = 0;// TODO check for ACT
+        sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
 
     }
+    // wait for ok
+    return waitForOK();
 }
 
 /**
@@ -197,12 +222,21 @@ bool CellularSetOperator(int mode, char *operatorName){
  * Returns true and populates opList and opsFound if the command succeeded.
  */
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
-    //TODO implement
-    return false;
+    // send AT+COPS=?
+    while (!sendATcommand(AT_CMD_COPS_TEST, sizeof(AT_CMD_COPS_TEST) - 1));
+
+    unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+    if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+        // TODO parse "+COPS: (....) AND TIMEOUT
+        // fill results
+        return true;
+
+    } else {
+        return false;
+    }
 }
 
-bool sendATcommand(unsigned char* command){
-    unsigned int command_size = sizeof(command) - 1;
+bool sendATcommand(unsigned char* command, unsigned int command_size){
     if (!SerialSend(command, command_size)){
         return false;
     }
@@ -210,13 +244,33 @@ bool sendATcommand(unsigned char* command){
     return true;
 }
 
-bool waitForATresponse(unsigned char * expected_response, unsigned int response_size) {
+bool waitForOK() {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
     memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+    unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+    int num_of_tokens = 0;
+
     do {
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
-    } while (memcmp(incoming_buffer, expected_response, response_size) != 0);
-    return true;
+        num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
+    } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
+             memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
+
+    return memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0;
+}
+
+bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size) {
+    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+    int num_of_tokens = 0;
+
+    do {
+        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+        num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
+    } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 ||
+             memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
+
+    return memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0;
 }
 
 
@@ -225,4 +279,17 @@ bool getATresponse(){
     int timeout_ms = 100; // TODO: change/define
     SerialRecv(buf, 200, timeout_ms);
     //TODO: continue
+}
+
+
+int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array) {
+    const char delimeter[] = "\r\n";
+    char * token;
+    int i=0;
+    token = strtok(buffer, delimeter);
+    while (token != NULL) {
+        tokens_array[i++] = (unsigned char *)token;
+        token = strtok(NULL, delimeter);
+    }
+    return i;
 }

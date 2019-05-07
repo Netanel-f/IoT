@@ -10,13 +10,20 @@
 #define MODEM_PORT "COM5"
 
 #define PRINT_FORMAT "Iteration #%d \nLatitude:\n%d\nLongitude:\n%d\nAltitude:\n%d\nTime:\n%s\nGoogle Maps:\n%f, %f\n"
+//int main() {
+//    unsigned char buf[] = "\r\n+SYSSTART\r\n\r\nhello\r\n";
+//    unsigned char * tokensarray[10];
+//    splitBufferToResponses(buf, tokensarray);
+//    return 1;
+//}
 int main() {
     // Initialize the cellular modems.
     CellularInit(MODEM_PORT);
     // Makes sure it’s responding to AT commands.
-    while (CellularCheckModem()) {
+    while (!CellularCheckModem()) {
         Delay(10);
     }
+
     // Finds all available cellular operators.
     int max_operators = 10; //TODO decide
     int num_operators_found = 0;
@@ -26,13 +33,20 @@ int main() {
     }
 
     // Tries to register with each one of them (one at a time).
-    int specific_operator_mode = 1;
     for (int op_index = 0; op_index <= num_operators_found; op_index++) {
-        if (CellularSetOperator(specific_operator_mode, operators_info[op_index].operatorName)) {
+        if (CellularSetOperator(SPECIFIC_OP, operators_info[op_index].operatorName)) {
             // If registered successfully, it prints the signal quality.
-            int signal_quality = -1;
-            if (CellularGetSignalQuality(&signal_quality)) {
-                printf("signal quality %d\n", signal_quality);
+            int registration_status = 0;
+            // verify registration to operator and check status
+            if (CellularGetRegistrationStatus(&registration_status) &&
+                (registration_status == 1 || registration_status == 5)) {
+                // registration_status == 1: Registered to home network
+                // registration_status == 5: Registered,
+                // roaming ME is registered at a foreign network (national or international network)
+                int signal_quality = -1;
+                if (CellularGetSignalQuality(&signal_quality)) {
+                    printf("signal quality %d\n", signal_quality);
+                }
             }
         }
     }

@@ -36,7 +36,11 @@ bool SerialInit(char* port, unsigned int baud)
 
 
     /* Set the Comm state */
-    GetCommState(hComm, &state);
+    if (!GetCommState(hComm, &state)) {
+        printf("GetCommState failed!\n");
+        return FALSE;
+    }
+
     if (baud == 9600) {
         // Quectel GPS rate
         state.BaudRate = CBR_9600;
@@ -45,27 +49,43 @@ bool SerialInit(char* port, unsigned int baud)
         state.BaudRate = CBR_115200;
     } else {
         printf("Wrong baud rate\n");
+        return FALSE;
     }
 
     state.ByteSize = 8;
     state.Parity = NOPARITY;
     state.StopBits = ONESTOPBIT;
     state.EvtChar = '\n';
-    SetCommState(hComm, &state);
+    if (!SetCommState(hComm, &state)) {
+        printf("SetCommState failed!\n");
+        return FALSE;
+    }
 
-    GetCommTimeouts(hComm, &original_timeouts);
+    if (!GetCommTimeouts(hComm, &original_timeouts)) {
+        printf("GetCommTimeouts failed!\n");
+        return FALSE;
+    }
     timeouts = original_timeouts;
     timeouts.ReadIntervalTimeout = MAXDWORD;
     timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
 
     /* set comm mask */
-    SetCommMask(hComm, EV_RXFLAG);
+    if (!SetCommMask(hComm, EV_RXFLAG)) {
+        printf("SetCommMask failed!\n");
+        return FALSE;
+    }
 
     /* setup device buffers */
-    SetupComm(hComm, 10000, 10000);
+    if (!SetupComm(hComm, 10000, 10000)) {
+        printf("SetupComm failed!\n");
+        return FALSE;
+    }
 
     /* purge any information in the buffer */
-    PurgeComm(hComm, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
+    if (!PurgeComm(hComm, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR)) {
+        printf("PurgeComm failed!\n");
+        return FALSE;
+    }
 
     return TRUE;
 }

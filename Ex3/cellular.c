@@ -11,6 +11,7 @@ int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops
 *****************************************************************************/
 #define MODEM_BAUD_RATE 115200
 #define MAX_INCOMING_BUF_SIZE 1000
+#define MAX_AT_CMD_LEN 30
 bool DEBUG = true;// TODO remove
 
 /*****************************************************************************
@@ -42,7 +43,7 @@ unsigned char AT_RES_PBREADY[] = "+PBREADY";
  * @param port
  */
 void CellularInit(char *port){
-    printf("Initializing Cellular... ");
+    printf("Initializing Cellular modem... ");
 
     if (!CELLULAR_INITIALIZED) {
         CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
@@ -66,7 +67,9 @@ void CellularInit(char *port){
             echo_off = waitForOK();
         }
 
-        printf("Initialization SUCCEEDED\n");
+        printf("turned off successfully.\n");
+
+        printf("Cellular modem initialized successfully.\n");
         //TODO maybe need timeout if device is OFF?
     }
 }
@@ -94,7 +97,7 @@ void CellularDisable(){
  * @return Return true if it does, returns false otherwise.
  */
 bool CellularCheckModem(void){
-    printf("Checking modem... ");
+    printf("Checks that the modem is responding... ");
     if (CELLULAR_INITIALIZED) {
         // send "hello" (AT\r\n)
         while (!sendATcommand(AT_CMD_AT, sizeof(AT_CMD_AT) - 1));
@@ -102,10 +105,10 @@ bool CellularCheckModem(void){
         // verify modem response
 //        if (waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
         if (waitForOK()) {
-            printf("modem is ready!\n");
+            printf("modem is responsive.\n");
             return true;
         } else {
-            printf("modem is NOT ready!\n");
+            printf("modem is NOT responsive!\n");
             return false;
         }
     } else {
@@ -153,9 +156,9 @@ bool CellularGetSignalQuality(int *csq){
     // rssi: 0,1,2-30,31,99, ber: 0-7,99unknown
 
     // send AT+CSQ
-    if (DEBUG) { printf("Sending: AT+CSQ ..."); }
+    if (DEBUG) { printf("\n*** Sending: AT+CSQ ..."); }
     if (sendATcommand(AT_CMD_CSQ, sizeof(AT_CMD_CSQ) - 1)) {
-        if (DEBUG) { printf(" sent\n"); }
+        if (DEBUG) { printf(" sent ***\n"); }
         unsigned char * token_array[5] = {};
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
             // TODO SPLIT TOKEN ARRAY BY ,
@@ -198,22 +201,24 @@ bool CellularSetOperator(int mode, char *operatorName){
     // +COPS: 0,0,"IL Pelephone",2
     //
     // OK
-    unsigned char command_to_send[] = ""; //TODO magic
-    if (mode == REG_AUTOMATICALLY || mode == DEREGISTER){
-        sprintf(command_to_send, "%s%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, AT_CMD_SUFFIX);
+    printf("Setting operator mode: %d\n", mode);
+    unsigned char command_to_send[MAX_AT_CMD_LEN] = ""; //TODO magic
+    memset(command_to_send, '\0',MAX_AT_CMD_LEN);
+    if (mode == REG_AUTOMATICALLY || mode == DEREGISTER) {
+        int cmd_size = sprintf(command_to_send, "%s%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, AT_CMD_SUFFIX);
 
         // send command
-        if (DEBUG) { printf("Sending: %s ... ", command_to_send); }
+        if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
         while(!sendATcommand(command_to_send, sizeof(command_to_send) - 1));
-        if (DEBUG) { printf("sent\n"); }
+        if (DEBUG) { printf("sent ***\n"); }
 
     } else if (mode == SPECIFIC_OP){
 
         int act = 0;// TODO check for ACT
         sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
-        if (DEBUG) { printf("Sending: %s ... ", command_to_send); }
+        if (DEBUG) { printf("\n*** CSO- Sending cmd: %s ... ", command_to_send); }
         while(!sendATcommand(command_to_send, sizeof(command_to_send) - 1));
-        if (DEBUG) { printf("sent\n"); }
+        if (DEBUG) { printf("sent ***\n"); }
     }
     // wait for ok
     return waitForOK();
@@ -232,9 +237,9 @@ bool CellularSetOperator(int mode, char *operatorName){
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
     // send AT+COPS=?
     // TODO timer
-    if (DEBUG) { printf("Sending: AT+COPS=? ..."); }
+    if (DEBUG) { printf("\n*** CGO- Sending: AT+COPS=? ..."); }
     while (!sendATcommand(AT_CMD_COPS_TEST, sizeof(AT_CMD_COPS_TEST) - 1));
-    if (DEBUG) { printf("sent.\n"); }
+    if (DEBUG) { printf("sent. ***\n"); }
 
     unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
     if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
@@ -243,6 +248,7 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 //        unsigned char * cops_str = token_array[0];
 //        char * operators = strtok(cops_str, "+COPS: "); // this remove "+COPS: "
         char operators[MAX_INCOMING_BUF_SIZE];
+        memset(operators, '\0', MAX_INCOMING_BUF_SIZE);
         strncpy(operators, &(token_array[0])[7], strlen(token_array[0]) - 7);
 
         int num_of_found_ops = splitOperators(operators, opList, maxops);
@@ -265,12 +271,14 @@ bool sendATcommand(unsigned char* command, unsigned int command_size){
 }
 
 bool waitForOK() {
+    // TODO maybe we need timeout?
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+    memset(incoming_buffer, '\0', MAX_INCOMING_BUF_SIZE);
     unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
     int num_of_tokens = 0;
 
     do {
+        if (DEBUG) { printf("\n*** wait for OK ***\n"); }
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
@@ -288,12 +296,14 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 
 
     do {
-        memset(incoming_buffer, 0, MAX_INCOMING_BUF_SIZE);
+        if (DEBUG) { printf("\n *** waiting for AT response ***\n"); }
+        memset(incoming_buffer, '\0', MAX_INCOMING_BUF_SIZE);
         bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
+        // TODO do we need to memset temp buffer?
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
 
-        if (DEBUG) { printf("#tokens: %d  ATWAIT: %s", num_of_tokens, temp_buffer); }
+        if (DEBUG) { printf("\n ** #tokens: %d  ATWAIT: %s **\n", num_of_tokens, temp_buffer); }
 
     } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
@@ -312,6 +322,7 @@ bool getATresponse(){
 
 
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array) {
+    if (DEBUG) { printf("\n*** splitBufferToResponses ***\n"); }
     const char delimiter[] = "\r\n";
     char * token;
     int i=0;
@@ -324,25 +335,30 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
 }
 
 int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops) {
+    if (DEBUG) { printf("\n*** splitOperators ***\n"); }
     // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
     //numeric <opName>, <AcT>)s ]
     const char op_start_delimiter[] = "(";
     const char op_field_delimiter[] = ",";
-    char * op_token;
+    char * operator_token;
     int op_index = 0;
     char operators_copy[MAX_INCOMING_BUF_SIZE];
+    memset(operators_copy, '\0', MAX_INCOMING_BUF_SIZE);
     strcpy(operators_copy, operators);
-    op_token = strtok(operators_copy, op_start_delimiter);
+    char * operators_rest = operators_copy;
+//    operator_token = strtok(operators_copy, op_start_delimiter);
+    operator_token = strtok_r(operators_copy, op_start_delimiter, &operators_rest);
 
-    while (op_token != NULL) {
+    while (operator_token != NULL) {
 
         if (op_index >= max_ops) {
             break;
         }
 
         int field_index = 0;
-        char current_op_token[MAX_INCOMING_BUF_SIZE];
-        strcpy(current_op_token, op_token);
+        char current_op_token[MAX_INCOMING_BUF_SIZE];   //TODO memset always
+        memset(current_op_token, '\0', MAX_INCOMING_BUF_SIZE);
+        strcpy(current_op_token, operator_token);
 
         char * field_token = strtok(current_op_token, op_field_delimiter);
 
@@ -350,19 +366,21 @@ int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops
             if (field_index == 1) {
                 // long alphanumeric <opName>
                 char op_name[20];
+                memset(op_name, '\0', 20);
 //                strncpy(op_name, field_token, strlen(field_token) - 1);
                 strncpy(op_name, &field_token[1], strlen(field_token) - 2);
-                memset(opList[op_index].operatorName, 0, 20);
+                memset(opList[op_index].operatorName, '\0', 20);
                 strcpy(opList[op_index].operatorName, op_name);
             } else if (field_index == 3) {
                 //numeric <opName>
                 char str_op_code[10];
+                memset(str_op_code, '\0', 10);
                 strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
                 int op_code = atoi(str_op_code);
                 opList[op_index].operatorCode = op_code;
             } else if (field_index == 4) {
                 // <AcT>
-                memset(opList[op_index].accessTechnology, 0, 4);
+                memset(opList[op_index].accessTechnology, '\0', 4);
                 strncpy(opList[op_index].accessTechnology, field_token, 1);
             }
 
@@ -370,7 +388,8 @@ int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops
             field_index++;
         }
 
-        op_token = strtok(NULL, op_start_delimiter);
+//        operator_token = strtok(NULL, op_start_delimiter);
+        operator_token = strtok_r(operators_copy, op_start_delimiter, &operators_rest);
         op_index++;
     }
 

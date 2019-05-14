@@ -47,6 +47,11 @@ bool SerialInit(char* port, unsigned int baud)
     } else if (baud == 115200){
         // Gemalto Cellular modem rate
         state.BaudRate = CBR_115200;
+        // TODO do we need this?
+        // https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=53279
+//        state.fDtrControl = DTR_CONTROL_ENABLE;
+//        state.fOutxCtsFlow = TRUE;
+//        state.fRtsControl = RTS_CONTROL_ENABLE;
     } else {
         printf("Wrong baud rate\n");
         return FALSE;

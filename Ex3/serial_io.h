@@ -40,7 +40,7 @@ bool SerialSend(unsigned char *buf, unsigned int size);
 /**************************************************************************//**
  * @brief Empties the input buffer.
  *****************************************************************************/
-void SerialFlushInputBuff(void);
+void SerialFlusabdshInputBuff(void);
 
 /**************************************************************************//**
  * @brief Disable the serial connection.

@@ -8,25 +8,33 @@
 #include "string.h"
 
 #define MODEM_PORT "COM5"
+#define MAX_IL_CELL_OPS 10  //TODO check 10 is enough
+
 
 int main() {
     // Initialize the cellular modems.
     CellularInit(MODEM_PORT);
+
     // Makes sure it’s responding to AT commands.
+    // looping to check modem responsiveness.
     while (!CellularCheckModem()) {
         Delay(10);
     }
 
+    // Setting modem to deregister and remain unregistered.
+    while (!CellularSetOperator(DEREGISTER, NULL));
+
     // Finds all available cellular operators.
-    int max_operators = 10; //TODO decide
     int num_operators_found = 0;
-    OPERATOR_INFO operators_info[max_operators];
-    printf("Finding all available cellular operators.\n");
-    while (num_operators_found == 0) {
-        CellularGetOperators(operators_info, max_operators, &num_operators_found);
+    OPERATOR_INFO operators_info[MAX_IL_CELL_OPS];
+    printf("Finding all available cellular operators...");
+    while (!CellularGetOperators(operators_info, MAX_IL_CELL_OPS, &num_operators_found)) {
+        printf("...");
     }
+    printf("\n");
 
     // Tries to register with each one of them (one at a time).
+    printf("Trying to register with each one of them (one at a time)\n");
     for (int op_index = 0; op_index <= num_operators_found; op_index++) {
         if (CellularSetOperator(SPECIFIC_OP, operators_info[op_index].operatorName)) {
             // If registered successfully, it prints the signal quality.

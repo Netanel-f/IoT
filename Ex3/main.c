@@ -36,21 +36,29 @@ int main() {
     // Tries to register with each one of them (one at a time).
     printf("Trying to register with each one of them (one at a time)\n");
     for (int op_index = 0; op_index <= num_operators_found; op_index++) {
+//        // Deregister from current operator TODO check is this needed?
+//        while (!CellularSetOperator(DEREGISTER, NULL));
+
+        // register to operator
         if (CellularSetOperator(SPECIFIC_OP, operators_info[op_index].operatorName)) {
+
             // If registered successfully, it prints the signal quality.
             int registration_status = 0;
+
             // verify registration to operator and check status
             if (CellularGetRegistrationStatus(&registration_status) &&
                 (registration_status == 1 || registration_status == 5)) {
+                printf("Modem registered successfully.\n");
                 // registration_status == 1: Registered to home network
                 // registration_status == 5: Registered,
                 // roaming ME is registered at a foreign network (national or international network)
                 int signal_quality = -1;
                 if (CellularGetSignalQuality(&signal_quality)) {
-                    printf("signal quality %d\n", signal_quality);
+                    printf("Current signal quality: %d\n", signal_quality);
                 }
             }
         }
+        printf("Modem registration failed.\n");
     }
     // Print the program’s progress all along (e.g. “Checking modem…the modem is ready!”  etc.)
     CellularDisable();

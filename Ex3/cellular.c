@@ -26,7 +26,7 @@ unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
 unsigned char AT_CMD_AT[] = "AT\r\n";
 unsigned char AT_CMD_COPS_TEST[] = "AT+COPS=?\r\n";
 const unsigned char AT_CMD_COPS_WRITE_PREFIX[] = "AT+COPS=";
-unsigned char AT_CMD_CREG_READ[] = "AT+CREG?\n";
+unsigned char AT_CMD_CREG_READ[] = "AT+CREG?\r\n";
 unsigned char AT_CMD_CSQ[] = "AT+CSQ\r\n";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
@@ -133,8 +133,12 @@ bool CellularGetRegistrationStatus(int *status){
     if (sendATcommand(AT_CMD_CREG_READ, sizeof(AT_CMD_CREG_READ) - 1)) {
         unsigned char * token_array[5] = {};
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
-            // TODO SPLIT TOKEN ARRAY BY ,
-            *status = atoi(token_array[1]);
+            //"+CREG: <Mode>,<regStatus>"
+            char * token;
+            token = strtok(token_array[0], ",");
+            token = strtok(NULL, ",");
+            *status = atoi(token);
+//            *status = atoi(token_array[1]);
             return true;
         }
     }
@@ -150,22 +154,28 @@ bool CellularGetRegistrationStatus(int *status){
  * -51dBm.
 
  */
-bool CellularGetSignalQuality(int *csq){
-    // TODO after init and registration
+bool CellularGetSignalQuality(int *csq) {
+    if (DEBUG) { printf("\n*** Sending: AT+CSQ ..."); }
+    if (!CELLULAR_INITIALIZED) {
+        return false;
+    }
     // AT+CSQ
     // response : +CSQ <rssi>,<ber> followed by OK
     // rssi: 0,1,2-30,31,99, ber: 0-7,99unknown
 
     // send AT+CSQ
-    if (DEBUG) { printf("\n*** Sending: AT+CSQ ..."); }
     if (sendATcommand(AT_CMD_CSQ, sizeof(AT_CMD_CSQ) - 1)) {
         if (DEBUG) { printf(" sent ***\n"); }
         unsigned char * token_array[5] = {};
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
+            char * token;
+            token = strtok(&(token_array[0])[5], ",");
             // TODO SPLIT TOKEN ARRAY BY ,
-            if (strcmp(token_array[0], "99") != 0) {
+//            if (strcmp(token_array[0], "99") != 0) {
+            if (strcmp(token, "99") != 0) {
                 // -113 + 2* rssi
-                int rssi = atoi(token_array[0]);
+//                int rssi = atoi(token_array[0]);
+                int rssi = atoi(token);
 
                 *csq = -113 + (2 * rssi);
                 return true;
@@ -202,7 +212,7 @@ bool CellularSetOperator(int mode, char *operatorName){
     // +COPS: 0,0,"IL Pelephone",2
     //
     // OK
-    printf("Setting operator mode: %d\n", mode);
+    printf("Setting operator mode: %d and operatorName is: %s\n", mode, operatorName);
     unsigned char command_to_send[MAX_AT_CMD_LEN] = ""; //TODO magic
     memset(command_to_send, '\0',MAX_AT_CMD_LEN);
     if (mode == REG_AUTOMATICALLY || mode == DEREGISTER) {
@@ -283,6 +293,7 @@ bool waitForOK() {
         if (DEBUG) { printf("\n*** wait for OK ***\n"); }
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
+        printf("***waitForOK--- token: %s\n", token_array[num_of_tokens-1]);
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
 
@@ -471,7 +482,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
             }
         }
 
-        field_token = strtok(NULL, op_field_delimiter);
+        field_token = (unsigned char *) strtok(NULL, op_field_delimiter);
         field_index++;
     }
 

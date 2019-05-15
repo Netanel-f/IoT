@@ -10,7 +10,7 @@
 #define MODEM_PORT "COM5"
 #define MAX_IL_CELL_OPS 10  //TODO check 10 is enough
 
-
+//TODO print program's progress
 int main() {
     // Initialize the cellular modems.
     CellularInit(MODEM_PORT);

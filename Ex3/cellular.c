@@ -35,6 +35,7 @@ unsigned char AT_RES_OK[] = "OK";
 unsigned char AT_RES_ERROR[] = "ERROR";
 unsigned char AT_RES_SYSSTART[] = "^SYSSTART";
 unsigned char AT_RES_PBREADY[] = "+PBREADY";
+unsigned char AT_URC_SHUTDOWN[] = "^SHUTDOWN";
 
 
 
@@ -85,7 +86,9 @@ void CellularDisable(){
         while (!sendATcommand(AT_CMD_SHUTDOWN, sizeof(AT_CMD_SHUTDOWN) - 1));
 
         // verify modem off
-        waitForOK(); //TODO NEED TO CHECK FOR ERROR
+//        waitForOK(); //TODO NEED TO CHECK FOR ERROR
+//        unsigned char * token_array[5] = {};    //Todo set 5 as MAGIC
+//        waitForATresponse(token_array, AT_URC_SHUTDOWN, sizeof(AT_URC_SHUTDOWN) - 1);
 
         SerialDisable();
         CELLULAR_INITIALIZED = false;
@@ -265,6 +268,7 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 
         int num_of_found_ops = splitCopsResponseToOpsTokens(operators, opList, maxops);
         // fill results
+        if (DEBUG) { printf("*** found %d ops", num_of_found_ops); }
         if (num_of_found_ops != 0) {
             *numOpsFound = num_of_found_ops;
             return true;
@@ -317,6 +321,7 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
 
         if (DEBUG) { printf("\n ** #tokens: %d  ATWAIT: %s **\n", num_of_tokens, temp_buffer); }
+        if (DEBUG) { printf("\n ** token_array[num_of_tokens-1]: %s **\n", token_array[num_of_tokens-1]); }
 
     } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);

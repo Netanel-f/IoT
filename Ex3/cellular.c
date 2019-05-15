@@ -5,7 +5,8 @@ bool sendATcommand(unsigned char* command, unsigned int command_size); //TODO de
 bool waitForOK();
 bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size);
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array);
-int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops);
+int splitCopsResponseToOpsTokens(unsigned char * cops_response, OPERATOR_INFO *opList, int max_ops);
+bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
@@ -249,9 +250,10 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 //        char * operators = strtok(cops_str, "+COPS: "); // this remove "+COPS: "
         char operators[MAX_INCOMING_BUF_SIZE];
         memset(operators, '\0', MAX_INCOMING_BUF_SIZE);
+        // this remove "+COPS: "
         strncpy(operators, &(token_array[0])[7], strlen(token_array[0]) - 7);
 
-        int num_of_found_ops = splitOperators(operators, opList, maxops);
+        int num_of_found_ops = splitCopsResponseToOpsTokens(operators, opList, maxops);
         // fill results
         if (num_of_found_ops != 0) {
             *numOpsFound = num_of_found_ops;
@@ -334,64 +336,144 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
     return i;
 }
 
-int splitOperators(unsigned char * operators, OPERATOR_INFO *opList, int max_ops) {
-    if (DEBUG) { printf("\n*** splitOperators ***\n"); }
+int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *opList, int max_ops) {
+    if (DEBUG) { printf("\n*** splitCopsResponseToOpsTokens ***\n"); }
     // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
     //numeric <opName>, <AcT>)s ]
     const char op_start_delimiter[] = "(";
-    const char op_field_delimiter[] = ",";
+//    const char op_field_delimiter[] = ",";
     char * operator_token;
     int op_index = 0;
-    char operators_copy[MAX_INCOMING_BUF_SIZE];
-    memset(operators_copy, '\0', MAX_INCOMING_BUF_SIZE);
-    strcpy(operators_copy, operators);
-    char * operators_rest = operators_copy;
+//    char operators_copy[MAX_INCOMING_BUF_SIZE];
+//    memset(operators_copy, '\0', MAX_INCOMING_BUF_SIZE);
+//    strcpy(operators_copy, operators);
+//    char * operators_rest = operators_copy;
 //    operator_token = strtok(operators_copy, op_start_delimiter);
-    operator_token = strtok_r(operators_copy, op_start_delimiter, &operators_rest);
+    operator_token = strtok(cops_response, op_start_delimiter);
+//    operator_token = strtok_s(operators_rest, op_start_delimiter, &operators_rest);
+    unsigned char * operators_tokens[max_ops];
+
+    for (int i=0; i < max_ops; i++) {
+        operators_tokens[i] = (unsigned char *) malloc(MAX_INCOMING_BUF_SIZE);
+    }
+//    unsigned char op_temp_token[MAX_INCOMING_BUF_SIZE];
 
     while (operator_token != NULL) {
-
         if (op_index >= max_ops) {
+            // found max operators
             break;
         }
 
-        int field_index = 0;
-        char current_op_token[MAX_INCOMING_BUF_SIZE];   //TODO memset always
-        memset(current_op_token, '\0', MAX_INCOMING_BUF_SIZE);
-        strcpy(current_op_token, operator_token);
+        // set char[] for helper method
+//        memset(op_temp_token, '\0', MAX_INCOMING_BUF_SIZE);
+//        strcpy(op_temp_token, operator_token);
+        strcpy(operators_tokens[op_index], operator_token);
 
-        char * field_token = strtok(current_op_token, op_field_delimiter);
+//        memset(op_temp_token, '\0', MAX_INCOMING_BUF_SIZE);
+//        strcpy(op_temp_token, operator_token);
+//        if (splitOpTokensToOPINFO(op_temp_token, &opList[op_index])) {
+//            op_index++;
+//        }
 
-        while (field_token != NULL) {
-            if (field_index == 1) {
-                // long alphanumeric <opName>
-                char op_name[20];
-                memset(op_name, '\0', 20);
-//                strncpy(op_name, field_token, strlen(field_token) - 1);
-                strncpy(op_name, &field_token[1], strlen(field_token) - 2);
-                memset(opList[op_index].operatorName, '\0', 20);
-                strcpy(opList[op_index].operatorName, op_name);
-            } else if (field_index == 3) {
-                //numeric <opName>
-                char str_op_code[10];
-                memset(str_op_code, '\0', 10);
-                strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
-                int op_code = atoi(str_op_code);
-                opList[op_index].operatorCode = op_code;
-            } else if (field_index == 4) {
-                // <AcT>
-                memset(opList[op_index].accessTechnology, '\0', 4);
-                strncpy(opList[op_index].accessTechnology, field_token, 1);
-            }
+//        int field_index = 0;
+//        char current_op_token[MAX_INCOMING_BUF_SIZE];   //TODO memset always
+//        memset(current_op_token, '\0', MAX_INCOMING_BUF_SIZE);
+//        strcpy(current_op_token, operator_token);
+//
+//        char * field_token = strtok(current_op_token, op_field_delimiter);
+//
+//        while (field_token != NULL) {
+//            if (field_index == 1) {
+//                // long alphanumeric <opName>
+//                char op_name[20];
+//                memset(op_name, '\0', 20);
+////                strncpy(op_name, field_token, strlen(field_token) - 1);
+//                strncpy(op_name, &field_token[1], strlen(field_token) - 2);
+//                memset(opList[op_index].operatorName, '\0', 20);
+//                strcpy(opList[op_index].operatorName, op_name);
+//            } else if (field_index == 3) {
+//                //numeric <opName>
+//                char str_op_code[10];
+//                memset(str_op_code, '\0', 10);
+//                strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
+//                int op_code = atoi(str_op_code);
+//                opList[op_index].operatorCode = op_code;
+//            } else if (field_index == 4) {
+//                memset(opList[op_index].accessTechnology, '\0', 4);
+//                // <AcT> Access Technology 0= GSM-2G 2= UTRAN-3G
+//                if (strcmp(field_token, "0") == 0) {
+//                    strncpy(opList[op_index].accessTechnology, "2G", 1);
+//                } else if (strcmp(field_token, "2") == 0) {
+//                    strncpy(opList[op_index].accessTechnology, "3G", 1);
+//                } else {
+//                    //TODO
+//                }
+//
+//
+//            }
+//
+//            field_token = strtok(NULL, op_field_delimiter);
+//            field_index++;
+//        }
 
-            field_token = strtok(NULL, op_field_delimiter);
-            field_index++;
-        }
-
-//        operator_token = strtok(NULL, op_start_delimiter);
-        operator_token = strtok_r(operators_copy, op_start_delimiter, &operators_rest);
+        operator_token = strtok(NULL, op_start_delimiter);
         op_index++;
     }
 
-    return op_index;
+    int parsed_ops_index = 0;
+    for (; op_index > 0; op_index--) {
+        if (splitOpTokensToOPINFO(operators_tokens[parsed_ops_index], &opList[parsed_ops_index])) {
+            parsed_ops_index++;
+        }
+
+    }
+
+//    return op_index;
+    return parsed_ops_index;
+}
+
+bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
+    if (DEBUG) { printf("\n*** splitOpTokensToOPINFO ***\n"); }
+
+    const char op_field_delimiter[] = ",";
+    int field_index = 0;
+    unsigned char * field_token = strtok(op_token, op_field_delimiter);
+
+    while (field_token != NULL) {
+        if (field_index == 1) {
+            // long alphanumeric <opName>
+//            char op_name[20];
+//            memset(op_name, '\0', 20);
+//            strncpy(op_name, field_token, strlen(field_token) - 1);
+//            strncpy(op_name, &field_token[1], strlen(field_token) - 2);
+            memset(opInfo->operatorName, '\0', 20);
+            strcpy(opInfo->operatorName, field_token);
+        } else if (field_index == 3) {
+            //numeric <opName>
+            opInfo->operatorCode = atoi(&field_token[1]);
+//            char str_op_code[10];
+//            memset(str_op_code, '\0', 10);
+//            strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
+//            int op_code = atoi(str_op_code);
+//            opList[op_index].operatorCode = op_code;
+        } else if (field_index == 4) {
+            memset(opInfo->accessTechnology, '\0', 4);
+//            memset(opList[op_index].accessTechnology, '\0', 4);
+            // <AcT> Access Technology 0= GSM-2G 2= UTRAN-3G
+            if (field_token[0] == '0') {
+//                strncpy(opList[op_index].accessTechnology, "2G", 1);
+                strcpy(opInfo->accessTechnology, "2G");
+            } else if (field_token[0] == '2') {
+//                strncpy(opList[op_index].accessTechnology, "3G", 1);
+                strcpy(opInfo->accessTechnology, "3G");
+            } else {
+                return false;
+            }
+        }
+
+        field_token = strtok(NULL, op_field_delimiter);
+        field_index++;
+    }
+
+    return true;
 }

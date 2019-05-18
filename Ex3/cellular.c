@@ -82,7 +82,7 @@ void CellularInit(char *port){
  */
 void CellularDisable(){
     if (CELLULAR_INITIALIZED) {
-        // shut down modem TODO do we need to shutdown the modem?
+        // shut down modem
         while (!sendATcommand(AT_CMD_SHUTDOWN, sizeof(AT_CMD_SHUTDOWN) - 1));
 
         // verify modem off
@@ -107,7 +107,6 @@ bool CellularCheckModem(void){
         while (!sendATcommand(AT_CMD_AT, sizeof(AT_CMD_AT) - 1));
 
         // verify modem response
-//        if (waitForATresponse(AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
         if (waitForOK()) {
             printf("modem is responsive.\n");
             return true;
@@ -136,12 +135,11 @@ bool CellularGetRegistrationStatus(int *status){
     if (sendATcommand(AT_CMD_CREG_READ, sizeof(AT_CMD_CREG_READ) - 1)) {
         unsigned char * token_array[5] = {};
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
-            //"+CREG: <Mode>,<regStatus>"
+            // "+CREG: <Mode>,<regStatus>"
             char * token;
             token = strtok(token_array[0], ",");
             token = strtok(NULL, ",");
             *status = atoi(token);
-//            *status = atoi(token_array[1]);
             return true;
         }
     }
@@ -173,13 +171,9 @@ bool CellularGetSignalQuality(int *csq) {
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
             char * token;
             token = strtok(&(token_array[0])[5], ",");
-            // TODO SPLIT TOKEN ARRAY BY ,
-//            if (strcmp(token_array[0], "99") != 0) {
             if (strcmp(token, "99") != 0) {
                 // -113 + 2* rssi
-//                int rssi = atoi(token_array[0]);
                 int rssi = atoi(token);
-
                 *csq = -113 + (2 * rssi);
                 return true;
             }
@@ -202,7 +196,6 @@ bool CellularGetSignalQuality(int *csq) {
  * @return Returns true if the command was successful, returns false otherwise.
  */
 bool CellularSetOperator(int mode, char *operatorName){
-    // TODO: on init we should set  AT+COPS=1 / 2
     // 1: Manual operator selection.
     // Write command requires <opName> in numeric format, i.e. <format> shall be 2.
     // 2: Manually deregister from network and remain unregistered until <mode>=0 or
@@ -211,12 +204,8 @@ bool CellularSetOperator(int mode, char *operatorName){
     // "+PBREADY" URC has shown up the powerup default <mode>=2 automatically
     // changes to <mode>=0, causing the ME to select a network.
 
-    //TODO: AT+COPS? will return something like:
-    // +COPS: 0,0,"IL Pelephone",2
-    //
-    // OK
     printf("Setting operator mode: %d and operatorName is: %s\n", mode, operatorName);
-    unsigned char command_to_send[MAX_AT_CMD_LEN] = ""; //TODO magic
+    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
     memset(command_to_send, '\0',MAX_AT_CMD_LEN);
     if (mode == REG_AUTOMATICALLY || mode == DEREGISTER) {
         int cmd_size = sprintf(command_to_send, "%s%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, AT_CMD_SUFFIX);
@@ -257,10 +246,6 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 
     unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
     if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1)) {
-        // TODO parse "+COPS: (....) AND TIMEOUT
-        // "+COPS: (1,\"Orange IL\",\"OrangeIL\",\"42501\",2),(1,\"IL Pelephone\",\"PCL\",\"42503\",2),(1,\"\",\"\",\"42507\",2),(1,\"Orange IL\",\"OrangeIL\",\"42501\",0),(1,\"JAWWAL-PALESTINE\",\"JAWWAL\",\"42505\",0)"
-//        unsigned char * cops_str = token_array[0];
-//        char * operators = strtok(cops_str, "+COPS: "); // this remove "+COPS: "
         char operators[MAX_INCOMING_BUF_SIZE];
         memset(operators, '\0', MAX_INCOMING_BUF_SIZE);
         // this remove "+COPS: "
@@ -282,7 +267,6 @@ bool sendATcommand(unsigned char* command, unsigned int command_size){
     if (!SerialSend(command, command_size)){
         return false;
     }
-//    Delay(100); // TODO
     return true;
 }
 
@@ -333,14 +317,6 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 }
 
 
-bool getATresponse(){
-    unsigned char buf[200] = ""; //TODO: change size
-    int timeout_ms = 100; // TODO: change/define
-    SerialRecv(buf, 200, timeout_ms);
-    //TODO: continue
-}
-
-
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array) {
     if (DEBUG) { printf("\n*** splitBufferToResponses ***\n"); }
     const char delimiter[] = "\r\n";
@@ -348,7 +324,7 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
     int i=0;
     token = strtok(buffer, delimiter);
     while (token != NULL) {
-        tokens_array[i++] = (unsigned char *)token; //TODO
+        tokens_array[i++] = (unsigned char *)token;
         token = strtok(NULL, delimiter);
     }
     return i;
@@ -359,22 +335,14 @@ int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *op
     // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
     //numeric <opName>, <AcT>)s ]
     const char op_start_delimiter[] = "(";
-//    const char op_field_delimiter[] = ",";
     char * operator_token;
     int op_index = 0;
-//    char operators_copy[MAX_INCOMING_BUF_SIZE];
-//    memset(operators_copy, '\0', MAX_INCOMING_BUF_SIZE);
-//    strcpy(operators_copy, operators);
-//    char * operators_rest = operators_copy;
-//    operator_token = strtok(operators_copy, op_start_delimiter);
     operator_token = strtok(cops_response, op_start_delimiter);
-//    operator_token = strtok_s(operators_rest, op_start_delimiter, &operators_rest);
     unsigned char * operators_tokens[max_ops];
 
     for (int i=0; i < max_ops; i++) {
         operators_tokens[i] = (unsigned char *) malloc(MAX_INCOMING_BUF_SIZE);
     }
-//    unsigned char op_temp_token[MAX_INCOMING_BUF_SIZE];
 
     while (operator_token != NULL) {
         if (op_index >= max_ops) {
@@ -383,57 +351,7 @@ int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *op
         }
 
         // set char[] for helper method
-//        memset(op_temp_token, '\0', MAX_INCOMING_BUF_SIZE);
-//        strcpy(op_temp_token, operator_token);
         strcpy(operators_tokens[op_index], operator_token);
-
-//        memset(op_temp_token, '\0', MAX_INCOMING_BUF_SIZE);
-//        strcpy(op_temp_token, operator_token);
-//        if (splitOpTokensToOPINFO(op_temp_token, &opList[op_index])) {
-//            op_index++;
-//        }
-
-//        int field_index = 0;
-//        char current_op_token[MAX_INCOMING_BUF_SIZE];   //TODO memset always
-//        memset(current_op_token, '\0', MAX_INCOMING_BUF_SIZE);
-//        strcpy(current_op_token, operator_token);
-//
-//        char * field_token = strtok(current_op_token, op_field_delimiter);
-//
-//        while (field_token != NULL) {
-//            if (field_index == 1) {
-//                // long alphanumeric <opName>
-//                char op_name[20];
-//                memset(op_name, '\0', 20);
-////                strncpy(op_name, field_token, strlen(field_token) - 1);
-//                strncpy(op_name, &field_token[1], strlen(field_token) - 2);
-//                memset(opList[op_index].operatorName, '\0', 20);
-//                strcpy(opList[op_index].operatorName, op_name);
-//            } else if (field_index == 3) {
-//                //numeric <opName>
-//                char str_op_code[10];
-//                memset(str_op_code, '\0', 10);
-//                strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
-//                int op_code = atoi(str_op_code);
-//                opList[op_index].operatorCode = op_code;
-//            } else if (field_index == 4) {
-//                memset(opList[op_index].accessTechnology, '\0', 4);
-//                // <AcT> Access Technology 0= GSM-2G 2= UTRAN-3G
-//                if (strcmp(field_token, "0") == 0) {
-//                    strncpy(opList[op_index].accessTechnology, "2G", 1);
-//                } else if (strcmp(field_token, "2") == 0) {
-//                    strncpy(opList[op_index].accessTechnology, "3G", 1);
-//                } else {
-//                    //TODO
-//                }
-//
-//
-//            }
-//
-//            field_token = strtok(NULL, op_field_delimiter);
-//            field_index++;
-//        }
-
         operator_token = strtok(NULL, op_start_delimiter);
         op_index++;
     }
@@ -445,10 +363,9 @@ int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *op
         }
 
     }
-
-//    return op_index;
     return parsed_ops_index;
 }
+
 
 bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
     if (DEBUG) { printf("\n*** splitOpTokensToOPINFO ***\n"); }
@@ -460,29 +377,18 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
     while (field_token != NULL) {
         if (field_index == 1) {
             // long alphanumeric <opName>
-//            char op_name[20];
-//            memset(op_name, '\0', 20);
-//            strncpy(op_name, field_token, strlen(field_token) - 1);
-//            strncpy(op_name, &field_token[1], strlen(field_token) - 2);
             memset(opInfo->operatorName, '\0', 20);
             strcpy(opInfo->operatorName, field_token);
+
         } else if (field_index == 3) {
             //numeric <opName>
             opInfo->operatorCode = atoi(&field_token[1]);
-//            char str_op_code[10];
-//            memset(str_op_code, '\0', 10);
-//            strncpy(str_op_code, &field_token[1], strlen(field_token) - 2);
-//            int op_code = atoi(str_op_code);
-//            opList[op_index].operatorCode = op_code;
+
         } else if (field_index == 4) {
             memset(opInfo->accessTechnology, '\0', 4);
-//            memset(opList[op_index].accessTechnology, '\0', 4);
-            // <AcT> Access Technology 0= GSM-2G 2= UTRAN-3G
             if (field_token[0] == '0') {
-//                strncpy(opList[op_index].accessTechnology, "2G", 1);
                 strcpy(opInfo->accessTechnology, "2G");
             } else if (field_token[0] == '2') {
-//                strncpy(opList[op_index].accessTechnology, "3G", 1);
                 strcpy(opInfo->accessTechnology, "3G");
             } else {
                 return false;

@@ -26,6 +26,7 @@ int main() {
 
     // Finds all available cellular operators.
     int num_operators_found = 0;
+    printf("~~~ #ops found: %d ~~~", num_operators_found);
     OPERATOR_INFO operators_info[MAX_IL_CELL_OPS];
     printf("Finding all available cellular operators...");
     while (!CellularGetOperators(operators_info, MAX_IL_CELL_OPS, &num_operators_found)) {

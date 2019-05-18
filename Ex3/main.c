@@ -4,7 +4,6 @@
 #include <time.h>
 #include <windows.h>
 
-//#include "serial_io.h"  // TODO REMOVE
 #include "cellular.h"
 #include "string.h"
 
@@ -20,7 +19,6 @@ int main() {
     // looping to check modem responsiveness.
     while (!CellularCheckModem()) {
         Sleep(10);
-//        Delay(10);
     }
 
     // Setting modem to deregister and remain unregistered.

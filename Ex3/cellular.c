@@ -12,7 +12,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 *****************************************************************************/
 #define MODEM_BAUD_RATE 115200
 #define MAX_INCOMING_BUF_SIZE 1000
-#define MAX_AT_CMD_LEN 30
+#define MAX_AT_CMD_LEN 100
 bool DEBUG = true;// TODO remove
 
 /*****************************************************************************
@@ -229,8 +229,8 @@ bool CellularSetOperator(int mode, char *operatorName){
     } else if (mode == SPECIFIC_OP){
 
         int act = 0;// TODO check for ACT
-        sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
-        if (DEBUG) { printf("\n*** CSO- Sending cmd: %s ... ", command_to_send); }
+        int cmd_size = sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
+        if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
         while(!sendATcommand(command_to_send, sizeof(command_to_send) - 1));
         if (DEBUG) { printf("sent ***\n"); }
     }
@@ -295,7 +295,9 @@ bool waitForOK() {
 
     do {
         if (DEBUG) { printf("\n*** wait for OK ***\n"); }
+        if (DEBUG) { printf("\n*** incoming buf: %s ***\n", incoming_buffer); }
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, recv_timeout_ms);
+        if (DEBUG) { printf("\n*** incoming buf: %s ***\n", incoming_buffer); }
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
         printf("***waitForOK--- token: %s\n", token_array[num_of_tokens-1]);
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&

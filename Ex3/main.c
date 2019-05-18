@@ -55,6 +55,7 @@ int main() {
                 int signal_quality = -1;
                 if (CellularGetSignalQuality(&signal_quality)) {
                     printf("Current signal quality: %d\n", signal_quality);
+                    continue;
                 }
             }
         }

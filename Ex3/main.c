@@ -12,6 +12,10 @@
 
 //TODO print program's progress
 int main() {
+    // setting printf to flush prints to stdout immediately
+    setbuf(stdout, NULL);
+
+
     // Initialize the cellular modems.
     CellularInit(MODEM_PORT);
 
@@ -29,15 +33,15 @@ int main() {
     OPERATOR_INFO operators_info[MAX_IL_CELL_OPS];
     printf("Finding all available cellular operators...");
     while (!CellularGetOperators(operators_info, MAX_IL_CELL_OPS, &num_operators_found)) {
-        printf("...");
+        printf(".");
     }
-    printf("\n");
-    printf("~~~ #ops found: %d ~~~", num_operators_found); //TODO delete
+    printf("found %d operators.\n", num_operators_found);
 
     // Tries to register with each one of them (one at a time).
     printf("Trying to register with each one of them (one at a time)\n");
     for (int op_index = 0; op_index <= num_operators_found; op_index++) {
-        // Deregister from current operator TODO check is this needed?
+        // Deregister from current operator
+        printf("Deregister from current operator.\n", operators_info[op_index].operatorName);
         while (!CellularSetOperator(DEREGISTER, NULL));
 
         // register to operator
@@ -56,11 +60,11 @@ int main() {
                 // roaming ME is registered at a foreign network (national or international network)
                 int signal_quality = -1;
                 if (CellularGetSignalQuality(&signal_quality)) {
-                    printf("Current signal quality: %d\n", signal_quality);
+                    printf("Current signal quality: %ddBm\n", signal_quality);
                 } else if (signal_quality == -1){
-                    printf("Modem didn't respond\n");
+                    printf("Modem didn't respond.\n");
                 } else if (signal_quality == 99) {
-                    printf("\"Current signal quality is UNKNOWN\n");
+                    printf("\"Current signal quality is UNKNOWN.\n");
                 }
                 continue;
             }

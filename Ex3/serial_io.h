@@ -30,10 +30,10 @@ bool SerialInit(char* port, unsigned int baud);
 unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms);
 
 /**
- * TODO
+ * writing buf string to serial port
  * @param buf
  * @param size
- * @return
+ * @return true on success
  */
 bool SerialSend(unsigned char *buf, unsigned int size);
 

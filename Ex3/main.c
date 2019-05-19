@@ -44,7 +44,7 @@ int main() {
     printf("Trying to register with each one of them (one at a time)\n");
     for (int op_index = 0; op_index <= num_operators_found; op_index++) {
         // Deregister from current operator
-        printf("Deregister from current operator.\n", operators_info[op_index].operatorName);
+        printf("Deregister from current operator.\n");
         while (!CellularSetOperator(DEREGISTER, NULL));
 
         // register to operator

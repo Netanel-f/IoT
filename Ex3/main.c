@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -7,12 +6,16 @@
 #include "cellular.h"
 #include "string.h"
 
+/*****************************************************************************
+ * 								DEFS
+*****************************************************************************/
 #define MODEM_PORT "COM5"
 #define MAX_IL_CELL_OPS 20
 
-//TODO print program's progress
+
+
 int main() {
-    // setting printf to flush prints to stdout immediately
+    // setting stdout to flush prints immediately
     setbuf(stdout, NULL);
 
 

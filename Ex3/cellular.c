@@ -1,13 +1,19 @@
 #include "cellular.h"
 #include "serial_io.h"
 
-bool sendATcommand(unsigned char* command, unsigned int command_size); //TODO declare
+
+/****************************************************************************
+ * 								DECLARATIONS
+*****************************************************************************/
+bool sendATcommand(unsigned char* command, unsigned int command_size);
 bool waitForOK();
 bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size, unsigned int timeout_ms);
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array);
 int splitCopsResponseToOpsTokens(unsigned char * cops_response, OPERATOR_INFO *opList, int max_ops);
 bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
-/**************************************************************************//**
+
+
+/*****************************************************************************
  * 								DEFS
 *****************************************************************************/
 #define MODEM_BAUD_RATE 115200
@@ -15,15 +21,11 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define MAX_AT_CMD_LEN 100
 #define GENERAL_RECV_TIMEOUT_MS 100
 #define GET_OPS_TIMEOUT_MS 120000
-//bool DEBUG = true;// TODO remove
-bool DEBUG = false;// TODO remove
+bool DEBUG = true;// TODO remove
 
 /*****************************************************************************
  * 							GLOBAL VARIABLES
 *****************************************************************************/
-//unsigned int recv_timeout_ms = 100;
-//unsigned int get_ops_timeout_ms = 120000;
-
 unsigned char AT_CMD_SUFFIX[] = "\r\n";
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
@@ -43,7 +45,6 @@ unsigned char AT_URC_SHUTDOWN[] = "^SHUTDOWN";
 
 
 
-
 /**
  * Initialize whatever is needed to start working with the cellular modem (e.g. the serial port).
  * @param port
@@ -58,9 +59,8 @@ void CellularInit(char *port){
             exit(EXIT_FAILURE);
         }
 
-
         // check modem responded with ^+PBREADY
-        unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+        unsigned char * token_array[10] = {};
         waitForATresponse(token_array, AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1, GENERAL_RECV_TIMEOUT_MS);
 
         bool echo_off = false;
@@ -74,9 +74,7 @@ void CellularInit(char *port){
         }
 
         printf("turned off successfully.\n");
-
         printf("Cellular modem initialized successfully.\n");
-        //TODO maybe need timeout if device is OFF?
     }
 }
 
@@ -89,11 +87,7 @@ void CellularDisable(){
         // shut down modem
         while (!sendATcommand(AT_CMD_SHUTDOWN, sizeof(AT_CMD_SHUTDOWN) - 1));
 
-        // verify modem off
-//        waitForOK(); //TODO NEED TO CHECK FOR ERROR
-//        unsigned char * token_array[5] = {};    //Todo set 5 as MAGIC
-//        waitForATresponse(token_array, AT_URC_SHUTDOWN, sizeof(AT_URC_SHUTDOWN) - 1, GENERAL_RECV_TIMEOUT_MS);
-
+        // Disable serial connection
         SerialDisable();
         CELLULAR_INITIALIZED = false;
     }
@@ -262,8 +256,10 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
     while (!sendATcommand(AT_CMD_COPS_TEST, sizeof(AT_CMD_COPS_TEST) - 1));
     if (DEBUG) { printf("sent. ***\n"); }
 
-    unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+    unsigned char * token_array[10] = {};
+
     if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1, GET_OPS_TIMEOUT_MS)) {
+
         char operators[MAX_INCOMING_BUF_SIZE];
         memset(operators, '\0', MAX_INCOMING_BUF_SIZE);
         // this remove "+COPS: "
@@ -281,6 +277,7 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
     return false;
 }
 
+
 bool sendATcommand(unsigned char* command, unsigned int command_size){
     if (!SerialSend(command, command_size)){
         return false;
@@ -288,10 +285,11 @@ bool sendATcommand(unsigned char* command, unsigned int command_size){
     return true;
 }
 
+
 bool waitForOK() {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
     memset(incoming_buffer, '\0', MAX_INCOMING_BUF_SIZE);
-    unsigned char * token_array[10] = {};    //Todo set 10 as MAGIC
+    unsigned char * token_array[10] = {};
     int num_of_tokens = 0;
 
     do {
@@ -303,6 +301,7 @@ bool waitForOK() {
         if (DEBUG) { printf("***waitForOK--- token: %s\n", token_array[num_of_tokens-1]); }
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
+
 
     return memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) == 0;
 }
@@ -323,7 +322,6 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 //            return false;
 //        }
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-        // TODO do we need to memset temp buffer?
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
 
 //        if (DEBUG) { printf("\n ** #tokens: %d  ATWAIT: %s **\n", num_of_tokens, temp_buffer); }

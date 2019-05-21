@@ -64,7 +64,7 @@ void CellularInit(char *port){
         waitForATresponse(token_array, AT_RES_PBREADY, sizeof(AT_RES_PBREADY) - 1, GENERAL_RECV_TIMEOUT_MS);
 
         bool echo_off = false;
-        printf("turning echo off... ");
+        printf("\nturning echo off... ");
         while (!echo_off) {
             // set modem echo off
             while (!sendATcommand(AT_CMD_ECHO_OFF, sizeof(AT_CMD_ECHO_OFF) - 1));
@@ -73,8 +73,8 @@ void CellularInit(char *port){
             echo_off = waitForOK();
         }
 
-        printf("turned off successfully.\n");
-        printf("Cellular modem initialized successfully.\n");
+        printf("successfully.\n");
+        printf("\nCellular modem initialized successfully.\n");
     }
 }
 
@@ -99,7 +99,7 @@ void CellularDisable(){
  * @return Return true if it does, returns false otherwise.
  */
 bool CellularCheckModem(void){
-    printf("Checks that the modem is responding... ");
+    printf("\nChecks that the modem is responding... ");
     if (CELLULAR_INITIALIZED) {
         // send "hello" (AT\r\n)
         while (!sendATcommand(AT_CMD_AT, sizeof(AT_CMD_AT) - 1));
@@ -124,7 +124,7 @@ bool CellularCheckModem(void){
  * @return Returns false if the modem did not respond or responded with an error.
  * Returns true if the command was successful and the registration status was obtained
  * from the modem. In that case, the status parameter will be populated with the numeric
- * value of the <regStatus> field of the “+CREG” AT command.
+ * value of the <regStatus> field of the "+CREG" AT command.
 
  */
 bool CellularGetRegistrationStatus(int *status){
@@ -178,8 +178,6 @@ bool CellularGetSignalQuality(int *csq) {
         }
     }
     return false;
-
-
 }
 
 /**
@@ -188,7 +186,7 @@ bool CellularGetSignalQuality(int *csq) {
  * (ignores the operatorName parameter).
  * If mode=1, forces the modem to work with a specific operator, given in operatorName.
  * If mode=2, deregisters from the network (ignores the operatorName parameter).
- * See the “+COPS=<mode>,…” command for more details.
+ * See the "+COPS=<mode>,..." command for more details.
  * @param mode
  * @param operatorName
  * @return Returns true if the command was successful, returns false otherwise.
@@ -197,12 +195,12 @@ bool CellularSetOperator(int mode, char *operatorName){
     // 1: Manual operator selection.
     // Write command requires <opName> in numeric format, i.e. <format> shall be 2.
     // 2: Manually deregister from network and remain unregistered until <mode>=0 or
-    // 1 or 4 is selected. Please keep in mind that the AT+COPS write command is SIM PIN protected.
+    // 1 or 4 is selected. Please keep in mind that the AT+COPS write command is SIM PIN protected.
     // When SIM PIN is disabled or after SIM PIN authentication has completed and
     // "+PBREADY" URC has shown up the power up default <mode>=2 automatically
     // changes to <mode>=0, causing the ME to select a network.
 
-    if (DEBUG) { printf("Setting operator mode: %d and operatorName is: %s\n", mode, operatorName); }
+    if (DEBUG) { printf("\nSetting operator mode: %d and operatorName is: %s\n", mode, operatorName); }
     unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
     memset(command_to_send, '\0',MAX_AT_CMD_LEN);
     if (mode == REG_AUTOMATICALLY || mode == DEREGISTER) {
@@ -212,7 +210,7 @@ bool CellularSetOperator(int mode, char *operatorName){
         if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
         while(!sendATcommand(command_to_send, cmd_size - 1));
         if (DEBUG) { printf("sent ***\n"); }
-        // wait for ok
+        // wait for OK
         return waitForOK();
 
     } else if (mode == SPECIFIC_OP) {
@@ -241,7 +239,7 @@ bool CellularSetOperator(int mode, char *operatorName){
 }
 
 /**
- * Forces the modem to search for available operators (see “+COPS=?” command).
+ * Forces the modem to search for available operators (see "+COPS=?" command).
  * @param opList - a pointer to the first item of an array of type CELLULAR_OP_INFO, which is
  * allocated by the caller of this function.
  * @param maxops - The array contains a total of maxops items.
@@ -316,21 +314,20 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 
     do {
         if (DEBUG) { printf("\n *** waiting for AT response ***\n"); }
-        memset(incoming_buffer, '\0', MAX_INCOMING_BUF_SIZE);
+        memset(incoming_buffer, '\0', bytes_received);
         bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
 //        if (bytes_received == SERIAL_TIMEOUT) { //TODO check
 //            return false;
 //        }
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-        num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
+        num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
 
-//        if (DEBUG) { printf("\n ** #tokens: %d  ATWAIT: %s **\n", num_of_tokens, temp_buffer); }
         if (DEBUG) { printf("\n *** token_array[num_of_tokens-1]: %s ***\n", token_array[num_of_tokens-1]); }
 
     } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
 
-    num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
+    //num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
     return memcmp(token_array[num_of_tokens-1], expected_response, response_size) == 0;
 }
 

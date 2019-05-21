@@ -20,8 +20,7 @@ int main() {
 
 
     // Initialize the cellular modems.
-    Cellular
-    Init(MODEM_PORT);
+    CellularInit(MODEM_PORT);
 
     // Makes sure it’s responding to AT commands.
     // looping to check modem responsiveness.

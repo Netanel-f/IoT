@@ -47,11 +47,6 @@ bool SerialInit(char* port, unsigned int baud)
     } else if (baud == 115200){
         // Gemalto Cellular modem rate
         state.BaudRate = CBR_115200;
-        // TODO do we need this?
-        // https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=53279
-//        state.fDtrControl = DTR_CONTROL_ENABLE;
-//        state.fOutxCtsFlow = TRUE;
-//        state.fRtsControl = RTS_CONTROL_ENABLE;
     } else {
         printf("Wrong baud rate\n");
         return FALSE;
@@ -113,12 +108,11 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
         printf("Error reading from serial port.\n");
         return 0;
     }
-//    SerialFlushInputBuff(); // TODO N: is this needed? maybe?
     return dwBytes > 0 ? dwBytes : SERIAL_TIMEOUT;
 }
 
 /**
- * //TODO
+ * will send first size bytes of buf to serial socket
  * @param buf
  * @param size
  * @return

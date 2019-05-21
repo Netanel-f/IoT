@@ -20,7 +20,8 @@ int main() {
 
 
     // Initialize the cellular modems.
-    CellularInit(MODEM_PORT);
+    Cellular
+    Init(MODEM_PORT);
 
     // Makes sure it’s responding to AT commands.
     // looping to check modem responsiveness.
@@ -42,7 +43,7 @@ int main() {
 
     // Tries to register with each one of them (one at a time).
     printf("Trying to register with each one of them (one at a time)\n");
-    for (int op_index = 0; op_index <= num_operators_found; op_index++) {
+    for (int op_index = 0; op_index < num_operators_found; op_index++) {
         // Deregister from current operator
         printf("Deregister from current operator.\n");
         while (!CellularSetOperator(DEREGISTER, NULL));

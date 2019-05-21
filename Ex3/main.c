@@ -13,7 +13,6 @@
 #define MAX_IL_CELL_OPS 20
 
 
-
 int main() {
     // setting stdout to flush prints immediately
     setbuf(stdout, NULL);

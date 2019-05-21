@@ -21,7 +21,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define MAX_AT_CMD_LEN 100
 #define GENERAL_RECV_TIMEOUT_MS 100
 #define GET_OPS_TIMEOUT_MS 120000
-bool DEBUG = true;// TODO remove
+
 
 /*****************************************************************************
  * 							GLOBAL VARIABLES
@@ -154,7 +154,6 @@ bool CellularGetRegistrationStatus(int *status){
 
  */
 bool CellularGetSignalQuality(int *csq) {
-    if (DEBUG) { printf("\n*** Sending: AT+CSQ ..."); }
     if (!CELLULAR_INITIALIZED) {
         return false;
     }
@@ -164,7 +163,6 @@ bool CellularGetSignalQuality(int *csq) {
 
     // send AT+CSQ
     if (sendATcommand(AT_CMD_CSQ, sizeof(AT_CMD_CSQ) - 1)) {
-        if (DEBUG) { printf(" sent ***\n"); }
         unsigned char * token_array[5] = {};
         if (waitForATresponse(token_array, AT_RES_OK, sizeof(AT_RES_OK) - 1, GENERAL_RECV_TIMEOUT_MS)) {
             char * token;
@@ -200,16 +198,14 @@ bool CellularSetOperator(int mode, char *operatorName){
     // "+PBREADY" URC has shown up the power up default <mode>=2 automatically
     // changes to <mode>=0, causing the ME to select a network.
 
-    if (DEBUG) { printf("\nSetting operator mode: %d and operatorName is: %s\n", mode, operatorName); }
     unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
     memset(command_to_send, '\0',MAX_AT_CMD_LEN);
     if (mode == REG_AUTOMATICALLY || mode == DEREGISTER) {
         int cmd_size = sprintf(command_to_send, "%s%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, AT_CMD_SUFFIX);
 
         // send command
-        if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
         while(!sendATcommand(command_to_send, cmd_size - 1));
-        if (DEBUG) { printf("sent ***\n"); }
+
         // wait for OK
         return waitForOK();
 
@@ -217,25 +213,21 @@ bool CellularSetOperator(int mode, char *operatorName){
 
         int act = 0;
         int cmd_size = sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
-        if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
         while(!sendATcommand(command_to_send, cmd_size - 1));
-        if (DEBUG) { printf("sent ***\n"); }
+
         if (waitForOK()){
             return true;
         } else {
             act = 2;
             cmd_size = sprintf(command_to_send, "%s%d,0,%s,%d%s", AT_CMD_COPS_WRITE_PREFIX, mode, operatorName, act, AT_CMD_SUFFIX);
-            if (DEBUG) { printf("\n***CSO- Sending cmd: %s ** Size:%d... ", command_to_send, cmd_size); }
             while(!sendATcommand(command_to_send, cmd_size - 1));
-            if (DEBUG) { printf("sent ***\n"); }
+
             return waitForOK();
         }
     } else {
         printf("invalid mode!\n");
         return false;
     }
-//    // wait for ok
-//    return waitForOK();
 }
 
 /**
@@ -250,9 +242,7 @@ bool CellularSetOperator(int mode, char *operatorName){
  */
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
     // send AT+COPS=?
-    if (DEBUG) { printf("\n*** CGO- Sending: AT+COPS=? ..."); }
     while (!sendATcommand(AT_CMD_COPS_TEST, sizeof(AT_CMD_COPS_TEST) - 1));
-    if (DEBUG) { printf("sent. ***\n"); }
 
     unsigned char * token_array[10] = {};
 
@@ -265,7 +255,6 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 
         int num_of_found_ops = splitCopsResponseToOpsTokens(operators, opList, maxops);
         // fill results
-        if (DEBUG) { printf("*** found %d ops", num_of_found_ops); }
         if (num_of_found_ops != 0) {
             *numOpsFound = num_of_found_ops;
             return true;
@@ -276,7 +265,7 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 }
 
 
-bool sendATcommand(unsigned char* command, unsigned int command_size){
+bool sendATcommand(unsigned char* command, unsigned int command_size) {
     if (!SerialSend(command, command_size)){
         return false;
     }
@@ -291,12 +280,9 @@ bool waitForOK() {
     int num_of_tokens = 0;
 
     do {
-        if (DEBUG) { printf("\n*** wait for OK ***\n"); }
-        if (DEBUG) { printf("\n*** incoming buf: %s ***\n", incoming_buffer); }
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, GENERAL_RECV_TIMEOUT_MS);
-        if (DEBUG) { printf("\n*** incoming buf: %s ***\n", incoming_buffer); }
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array);
-        if (DEBUG) { printf("***waitForOK--- token: %s\n", token_array[num_of_tokens-1]); }
+
     } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
 
@@ -305,7 +291,8 @@ bool waitForOK() {
 }
 
 
-bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response, unsigned int response_size, unsigned int timeout_ms) {
+bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_response,
+        unsigned int response_size, unsigned int timeout_ms) {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
     unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
     unsigned int bytes_received = 0;
@@ -313,27 +300,19 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 
 
     do {
-        if (DEBUG) { printf("\n *** waiting for AT response ***\n"); }
         memset(incoming_buffer, '\0', bytes_received);
         bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
-//        if (bytes_received == SERIAL_TIMEOUT) { //TODO check
-//            return false;
-//        }
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
-
-        if (DEBUG) { printf("\n *** token_array[num_of_tokens-1]: %s ***\n", token_array[num_of_tokens-1]); }
 
     } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
              memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
 
-    //num_of_tokens = splitBufferToResponses(temp_buffer, token_array);
     return memcmp(token_array[num_of_tokens-1], expected_response, response_size) == 0;
 }
 
 
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array) {
-    if (DEBUG) { printf("\n*** splitBufferToResponses ***\n"); }
     const char delimiter[] = "\r\n";
     char * token;
     int i=0;
@@ -346,7 +325,6 @@ int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array
 }
 
 int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *opList, int max_ops) {
-    if (DEBUG) { printf("\n*** splitCopsResponseToOpsTokens ***\n"); }
     // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
     //numeric <opName>, <AcT>)s ]
     const char op_start_delimiter[] = "(";
@@ -383,8 +361,6 @@ int splitCopsResponseToOpsTokens(unsigned char *cops_response, OPERATOR_INFO *op
 
 
 bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
-    if (DEBUG) { printf("\n*** splitOpTokensToOPINFO ***\n"); }
-
     const char op_field_delimiter[] = ",";
     int field_index = 0;
     unsigned char * field_token = strtok(op_token, op_field_delimiter);

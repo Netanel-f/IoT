@@ -67,7 +67,7 @@ int main() {
                 } else if (signal_quality == -1){
                     printf("Modem didn't respond.\n");
                 } else if (signal_quality == 99) {
-                    printf("\"Current signal quality is UNKNOWN.\n");
+                    printf("Current signal quality is UNKNOWN.\n");
                 }
                 continue;
             }

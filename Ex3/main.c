@@ -77,7 +77,7 @@ int main() {
     }
 
     // Print the program’s progress all along (e.g. “Checking modem…the modem is ready!”  etc.)
-    printf("Disabling Cellular and exiting..,\n");
+    printf("Disabling Cellular and exiting...\n");
     CellularDisable();
     exit(0);
 }

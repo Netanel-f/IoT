@@ -91,4 +91,32 @@ bool CellularSetOperator(int mode, char *operatorName);
  */
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound);
 
+/**todo
+ * Initialize an internet connection profile (AT^SICS) with inactTO=inact_time_sec and conType= GPRS0
+ * and apn="postm2m.lu".
+ * @param inact_time_sec
+ * @return
+ */
+bool CellularSetupInternetConnectionProfile(int inact_time_sec);
+
+/**todo
+ * Send an HTTP POST request. Opens and closes the socket.
+ * @param URL
+ * @param payload
+ * @param payload_len
+ * @param response
+ * @param response_max_len
+ * @return
+ */
+int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len);
+
+/**todo
+ * Returns additional information on the last error occurred during CellularSendHTTPPOSTRequest.
+ * The response includes urcInfoId, then comma (‘,’), then urcInfoText, e.g. “200,Socket-Error:3”.
+ * @param errmsg
+ * @param errmsg_max_len
+ * @return
+ */
+int CellularGetLastError(char *errmsg, int errmsg_max_len);
+
 #endif //IOT_CELLULAR_H

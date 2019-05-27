@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "cellular.h"
+#include "gps.h"
 #include "string.h"
 
 /*****************************************************************************
@@ -14,9 +15,37 @@
 
 
 int main() {
+
+    //TODO Main tasks:
+    // print progress always.
+    // ---PART 1---
+    // when BTN0 is pressed
+    //   Get GPS data
+    //   Init modem
+    //   verify modem is responding
+    //   find all cell ops.
+    //   try register each one
+    //      if succeed print csq
+    //      connect [init inet conn.] to an available op. (if available, if not tries again after one minute)
+    //      transmit the GPS data over HTTP
+    //      transmit the cellular data over HTTP
+    // ---PART 2---
+    // click on BTN1:
+    //   start track GPS every 5 seconds.
+    //   use touch slider to define speed limit left:0,5,10,15,25,right:30 km/h
+    //   if speed > limit:
+    //      transmit current GPS cords + tag: highspeed = true
+    //   if we passed the limit but now we are ok:
+    //      transmit current GPS cords + tag: highspeed = false
+    //   if BTN0 clieck go back to park 1.
+
+
     // setting stdout to flush prints immediately
     setbuf(stdout, NULL);
 
+
+    // Initialize the GPS.
+    GPSInit();
 
     // Initialize the cellular modems.
     CellularInit(MODEM_PORT);

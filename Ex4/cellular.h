@@ -91,7 +91,7 @@ bool CellularSetOperator(int mode, char *operatorName);
  */
 bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound);
 
-/**todo
+/**
  * Initialize an internet connection profile (AT^SICS) with inactTO=inact_time_sec and conType= GPRS0
  * and apn="postm2m.lu".
  * @param inact_time_sec
@@ -99,18 +99,18 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound);
  */
 bool CellularSetupInternetConnectionProfile(int inact_time_sec);
 
-/**todo
+/**
  * Send an HTTP POST request. Opens and closes the socket.
- * @param URL
- * @param payload
- * @param payload_len
- * @param response
- * @param response_max_len
- * @return
+ * @param URL is the complete address of the page we are posting to, e.g. “https://helloworld.com/mystuf/thispagewillreceivemypost?andadditional=stuff”
+ * @param payload payload is everything that is sent as HTTP POST content.
+ * @param payload_len payload_len is the length of the payload parameter.
+ * @param response response is a buffer that holds the content of the HTTP response.
+ * @param response_max_len response_max_len is the response buffer length.
+ * @return The return value indicates the number of read bytes in response. If there is any kind of error, return -1.
  */
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len);
 
-/**todo
+/**
  * Returns additional information on the last error occurred during CellularSendHTTPPOSTRequest.
  * The response includes urcInfoId, then comma (‘,’), then urcInfoText, e.g. “200,Socket-Error:3”.
  * @param errmsg

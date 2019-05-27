@@ -21,6 +21,12 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define MAX_AT_CMD_LEN 100
 #define GENERAL_RECV_TIMEOUT_MS 100
 #define GET_OPS_TIMEOUT_MS 120000
+#define MAX_conProfileId 5
+#define MAX_srvProfileId 9
+
+#define SISS_CMD_HTTP_GET 0
+#define SISS_CMD_HTTP_POST 1
+#define SISS_CMD_HTTP_HEAD 2
 
 
 /*****************************************************************************
@@ -34,6 +40,9 @@ unsigned char AT_CMD_COPS_TEST[] = "AT+COPS=?\r\n";
 const unsigned char AT_CMD_COPS_WRITE_PREFIX[] = "AT+COPS=";
 unsigned char AT_CMD_CREG_READ[] = "AT+CREG?\r\n";
 unsigned char AT_CMD_CSQ[] = "AT+CSQ\r\n";
+unsigned char AT_CMD_SICS_WRITE_PRFX[] = "AT^SICS=";
+unsigned char AT_CMD_SISS_WRITE_PRFX[] = "AT^SISS=";
+unsigned char AT_CMD_SISO_WRITE_PRFX[] = "AT^SISO=";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
@@ -43,6 +52,17 @@ unsigned char AT_RES_SYSSTART[] = "^SYSSTART";
 unsigned char AT_RES_PBREADY[] = "+PBREADY";
 unsigned char AT_URC_SHUTDOWN[] = "^SHUTDOWN";
 
+// Internet connection profile identifier. 0..5
+// The <conProfileId> identifies all parameters of a connection profile,
+// and, when a service profile is created with AT^SISS the <conProfileId>
+// needs to be set as "conId" value of the AT^SISS parameter <srvParmTag>.
+int conProfileId = -1;
+
+// Internet service profile identifier.0..9
+// The <srvProfileId> is used to reference all parameters related to the same service profile. Furthermore,
+// when using the AT commands AT^SISO, AT^SISR, AT^SISW, AT^SIST, AT^SISH and AT^SISC the
+//<srvProfileId> is needed to select a specific service profile.
+int srvProfileId = -1;
 
 
 /**
@@ -391,4 +411,198 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
     }
 
     return true;
+}
+
+/**
+ * Initialize an internet connection profile (AT^SICS) with inactTO=inact_time_sec and conType= GPRS0
+ * and apn="postm2m.lu".
+ * @param inact_time_sec
+ * @return
+ */
+bool CellularSetupInternetConnectionProfile(int inact_time_sec) {
+    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
+
+    int conProfileId_cand;
+
+    for (conProfileId_cand = 0; conProfileId_cand <= MAX_conProfileId; conProfileId_cand++) {
+        memset(command_to_send, '\0',MAX_AT_CMD_LEN);
+
+        // AT^SICS=0,conType,GPRS0
+        int cmd_size = sprintf(command_to_send, "%s%d,conType,GPRS0%s", AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
+        while (!sendATcommand(command_to_send, cmd_size - 1));
+
+        if (!waitForOK()) {
+            continue;
+        }
+
+        memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+
+        // AT^SICS=0,"inactTO", "20"
+        cmd_size = sprintf(command_to_send, "%s%d,\"inactTO\", \"%d\"%s",
+                           AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, inact_time_sec, AT_CMD_SUFFIX);
+        while (!sendATcommand(command_to_send, cmd_size - 1));
+
+        if (!waitForOK()) {
+            continue;
+        }
+
+        memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+
+        // AT^SICS=0,apn,"postm2m.lu"
+        cmd_size = sprintf(command_to_send, "%s%d,apn,\"postm2m.lu\"%s",
+                           AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
+        while (!sendATcommand(command_to_send, cmd_size - 1));
+
+        if (waitForOK()) {
+            conProfileId = conProfileId_cand;
+            return true;
+        }
+//        // TODO delete this code.
+//        // AT^SICS=0,conType,GPRS0
+//        int cmd_size = sprintf(command_to_send, "%s%d,conType,GPRS0%s", AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
+//        while (!sendATcommand(command_to_send, cmd_size - 1));
+//
+//        if (waitForOK()) {
+//            memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+//
+//            // AT^SICS=0,"inactTO", "20"
+//            int cmd_size = sprintf(command_to_send, "%s%d,\"inactTO\", \"%d\"%s",
+//                                   AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, inact_time_sec, AT_CMD_SUFFIX);
+//            while (!sendATcommand(command_to_send, cmd_size - 1));
+//
+//            if (waitForOK()) {
+//                memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+//
+//                // AT^SICS=0,apn,"postm2m.lu"
+//                int cmd_size = sprintf(command_to_send, "%s%d,apn,\"postm2m.lu\"%s",
+//                                       AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
+//                while (!sendATcommand(command_to_send, cmd_size - 1));
+//
+//                if (waitForOK()) {
+//                    conProfileId = conProfileId_cand;
+//                    return true;
+//                }
+//            }
+//        }
+    }
+
+    return false;
+}
+
+/**
+ * Send an HTTP POST request. Opens and closes the socket.
+ * @param URL is the complete address of the page we are posting to, e.g. “https://helloworld.com/mystuf/thispagewillreceivemypost?andadditional=stuff”
+ * @param payload payload is everything that is sent as HTTP POST content.
+ * @param payload_len payload_len is the length of the payload parameter.
+ * @param response response is a buffer that holds the content of the HTTP response.
+ * @param response_max_len response_max_len is the response buffer length.
+ * @return The return value indicates the number of read bytes in response.
+ *         If there is any kind of error, return -1.
+ */
+int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len) {
+    // sanity check: conProfileId exists
+    if (conProfileId == -1) {
+        return -1;
+    }
+
+    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
+    int srvProfileId_cand;
+
+    // find available srvProfileId
+    for (srvProfileId_cand = 0; srvProfileId_cand <= MAX_srvProfileId; srvProfileId_cand++) {
+        // AT^SISS=<srvProfileId>, <srvParmTag>, <srvParmValue>
+
+        for (int attempts = 3; attempts > 0; attempts--) {
+            //AT^SISS=6,"SrvType","Http"
+            memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+            int cmd_size = sprintf(command_to_send, "%s%d,\"SrvType\",\"Http\"%s",
+                                   AT_CMD_SISS_WRITE_PRFX, srvProfileId_cand, AT_CMD_SUFFIX);
+            while (!sendATcommand(command_to_send, cmd_size - 1));
+
+            if (waitForOK()) {
+                srvProfileId = srvProfileId_cand;
+                break;
+            }
+        }
+
+        if (srvProfileId != -1) {
+            break;
+        }
+    }
+
+    if (srvProfileId != -1) {
+        return -1;
+    }
+
+
+    //AT^SISS=6,"conId","<conProfileId>"
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    int cmd_size = sprintf(command_to_send, "%s%d,\"conId\",\"%d\"%s",
+                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, conProfileId, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    if (!waitForOK()) { return -1; }
+
+    //AT^SISS=6,"address","<url>"
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    cmd_size = sprintf(command_to_send, "%s%d,\"address\",\"%s\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, URL, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    if (!waitForOK()) { return -1; }
+
+
+    //AT^SISS=6,"cmd","1"
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    cmd_size = sprintf(command_to_send, "%s%d,\"cmd\",\"%d\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, SISS_CMD_HTTP_POST, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    if (!waitForOK()) { return -1; }
+
+
+    //AT^SISS=6,"hcContLen","0"
+    // If "hcContLen" = 0 then the data given in the "hcContent" string will be posted
+    // without AT^SISW required.
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    cmd_size = sprintf(command_to_send, "%s%d,\"hcContLen\",\"%d\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload_len, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    if (!waitForOK()) { return -1; }
+
+
+    //AT^SISS=6,"hcContent","HelloWorld!"
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    cmd_size = sprintf(command_to_send, "%s%d,\"hcContent\",\"%s\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    if (!waitForOK()) { return -1; }
+
+    //AT^SISO=6
+    //OK
+    //
+    //^SIS: 6,0,2200,"Http en8wtnrvtnkt5.x.pipedream.net:443"
+    //AT^SISR=6,20
+    //ERROR
+    //
+    //^SISW: 6,2
+    //
+    //^SISR: 6,1
+    //at^sisc=6
+    //OK
+
+    return 1;//todo
+}
+
+/**
+ * Returns additional information on the last error occurred during CellularSendHTTPPOSTRequest.
+ * The response includes urcInfoId, then comma (‘,’), then urcInfoText, e.g. “200,Socket-Error:3”.
+ * @param errmsg
+ * @param errmsg_max_len
+ * @return
+ */
+int CellularGetLastError(char *errmsg, int errmsg_max_len ){
+    return 1;
 }

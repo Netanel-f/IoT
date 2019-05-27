@@ -16,7 +16,7 @@
 *****************************************************************************/
 
 #ifdef _WIN32
-static char* PORT = "COM5";
+static char* PORT = "COM5";//todo check
 #else
 static char* PORT = "3";
 #endif

@@ -659,11 +659,13 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     //
     // ^SISR: 6,1
 
-    if (strcmp(r_urc_cause, "1") == 0) {
-
-    } else {
+    if (strcmp(r_urc_cause, "1") != 0) {
+        // read urc cause != 1 so we failed.
         return -1;
     }
+
+    // ready to read/
+
     // AT^SISR=6,20
     memset(command_to_send, '\0', MAX_AT_CMD_LEN);
     cmd_size = sprintf(command_to_send, "%s%d,%d%s", AT_CMD_SISR_WRITE_PRFX, srvProfileId, response_max_len, AT_CMD_SUFFIX);

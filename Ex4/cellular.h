@@ -101,12 +101,12 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec);
 
 /**
  * Send an HTTP POST request. Opens and closes the socket.
- * @param URL is the complete address of the page we are posting to, e.g. “https://helloworld.com/mystuf/thispagewillreceivemypost?andadditional=stuff”
- * @param payload payload is everything that is sent as HTTP POST content.
- * @param payload_len payload_len is the length of the payload parameter.
- * @param response response is a buffer that holds the content of the HTTP response.
- * @param response_max_len response_max_len is the response buffer length.
- * @return The return value indicates the number of read bytes in response. If there is any kind of error, return -1.
+ * @param URL
+ * @param payload
+ * @param payload_len
+ * @param response
+ * @param response_max_len
+ * @return
  */
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len);
 

@@ -348,6 +348,10 @@ int getSISURCs(unsigned char ** token_array, int total_expected_urcs, int max_ur
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, max_urcs);
 
+        if ((num_of_tokens > 0) && (strcmp(token_array[num_of_tokens - 1], "ERROR") == 0)) {
+            break;
+        }
+
     } while (num_of_tokens < total_expected_urcs);
 
     return num_of_tokens;
@@ -559,6 +563,8 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec) {
  *         If there is any kind of error, return -1.
  */
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len) {
+    int num_of_read_bytes_in_response = -1;
+    char * temp_response;
     // sanity check: conProfileId exists
     if (conProfileId == -1) {
         return -1;
@@ -627,13 +633,23 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     cmd_size = sprintf(command_to_send, "%s%d", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send, cmd_size - 1));
 
-    if (!waitForOK()) { return -1; }
+//    if (!waitForOK()) { return -1; }
 
+
+    //todo read URC
+    // OK or ERROR
+    // ^SIS: 6,0,2200,"Http en8wtnrvtnkt5.x.pipedream.net:443"
+    //
+    // ^SISW: 6,2
+    //
+    // ^SISR: 6,1
+
+    bool received_siso_err = false;
     char r_urc_cause[3] = "";
     char w_urc_cause[3] = "";
 
     unsigned char * token_array[10] = {};
-    int received_urcs = getSISURCs(token_array, 3, 10, GENERAL_RECV_TIMEOUT_MS);
+    int received_urcs = getSISURCs(token_array, 4, 10, GENERAL_RECV_TIMEOUT_MS);
     const char urc_delimiter[] = ": ";
     for (int urc_idx = 0; urc_idx < received_urcs; urc_idx++) {
         char * urc_prefix;
@@ -645,21 +661,19 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
         temp_token = strtok(NULL, urc_delimiter);
         strcpy(urc_result, temp_token);
 
-        if (strcmp(urc_prefix, "^SISR") == 0) {
+        if (strcmp(urc_prefix, "ERROR") == 0) {
+            received_siso_err = true;
+            break;
+        } else if (strcmp(urc_prefix, "^SISR") == 0) {
             strcpy(r_urc_cause ,urc_result[2]);
         } else if (strcmp(urc_prefix, "^SISW") == 0) {
             strcpy(w_urc_cause, urc_result[2]);
         }
 
     }
-    //todo read URC
-    // ^SIS: 6,0,2200,"Http en8wtnrvtnkt5.x.pipedream.net:443"
-    //
-    // ^SISW: 6,2
-    //
-    // ^SISR: 6,1
 
-    if (strcmp(r_urc_cause, "1") != 0) {
+
+    if (received_siso_err || (strcmp(r_urc_cause, "1") != 0)) {
         // read urc cause != 1 so we failed.
         return -1;
     }
@@ -671,14 +685,53 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     cmd_size = sprintf(command_to_send, "%s%d,%d%s", AT_CMD_SISR_WRITE_PRFX, srvProfileId, response_max_len, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send, cmd_size - 1));
 
-    if (!waitForOK()) { return -1; }
+//    if (!waitForOK()) { return -1; }
 
     //todo
+    // OK or ERROR
     // ^SISR: 6,16
     // {"success":true}
     // OK
     //
     // ^SISR: 6,2
+    bool received_sisr_err = false;
+    unsigned char * token_arrayA[10] = {};
+    int received_urcsA = getSISURCs(token_array, 5, 10, GENERAL_RECV_TIMEOUT_MS);
+
+//    const char urc_delimiter[] = ": ";
+    for (int urc_idx = 0; urc_idx < received_urcsA; urc_idx++) {
+
+        if (strcmp(token_array[urc_idx], "OK") == 0) {
+            received_sisr_err = false;
+
+        } else if (strcmp(token_array[urc_idx], "ERROR") == 0) {
+            received_sisr_err = true;
+
+        } else if (token_array[urc_idx][0] == '^') {
+            char * urc_prefix;
+            char * urc_result;
+            char * temp_token;
+
+            temp_token = strtok(token_array[urc_idx], urc_delimiter);
+
+
+            strcpy(urc_prefix, temp_token);
+            temp_token = strtok(NULL, urc_delimiter);
+            strcpy(urc_result, temp_token);
+
+            if (strcmp(urc_prefix, "^SISR") == 0) {
+                strcpy(r_urc_cause, urc_result[2]);
+                num_of_read_bytes_in_response = atoi(urc_result[2]);
+
+            } else if (strcmp(urc_prefix, "^SISW") == 0) {
+                strcpy(w_urc_cause, urc_result[2]);
+            }
+
+        } else if (token_array[urc_idx][0] == '{') {
+            strcpy(temp_response, token_array[urc_idx]);
+        }
+
+    }
 
 
     //AT^SISC=6
@@ -688,7 +741,9 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
 
     if (!waitForOK()) { return -1; }
 
-    return 1;//todo
+    // all went fine
+    strcpy(response, temp_response);
+    return num_of_read_bytes_in_response;
 }
 
 /**

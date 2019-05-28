@@ -11,7 +11,6 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array, int max_tokens);
 int splitCopsResponseToOpsTokens(unsigned char * cops_response, OPERATOR_INFO *opList, int max_ops);
 bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
-bool sendATCmeeCmd(enum ERROR_MODE errMode);
 
 /*****************************************************************************
  * 								DEFS
@@ -20,6 +19,7 @@ bool sendATCmeeCmd(enum ERROR_MODE errMode);
 #define MAX_INCOMING_BUF_SIZE 1000
 #define MAX_AT_CMD_LEN 100
 #define GENERAL_RECV_TIMEOUT_MS 100
+#define GENERAL_RECV_DLY_TIMEOUT_MS 150
 #define GET_OPS_TIMEOUT_MS 120000
 #define MAX_conProfileId 5
 //#define MAX_srvProfileId 9
@@ -38,6 +38,7 @@ bool sendATCmeeCmd(enum ERROR_MODE errMode);
 
 unsigned char command_to_send_buffer[MAX_AT_CMD_LEN] = "";  //todo
 unsigned char * response_tokens[10] = {};
+unsigned int num_of_tokens_found = 0;
 
 unsigned char AT_CMD_SUFFIX[] = "\r\n";
 // AT_COMMANDS
@@ -53,7 +54,7 @@ unsigned char AT_CMD_SISO_WRITE_PRFX[] = "AT^SISO=";
 unsigned char AT_CMD_SISR_WRITE_PRFX[] = "AT^SISR=";
 unsigned char AT_CMD_SISW_WRITE_PRFX[] = "AT^SISW=";
 unsigned char AT_CMD_SISC_WRITE_PRFX[] = "AT^SISC=";
-unsigned char AT_CMD_CMEE_WRITE_PRFX[] = "AT^CMEE=";
+unsigned char AT_CMD_CMEE_WRITE_PRFX[] = "AT+CMEE=";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
@@ -265,6 +266,7 @@ bool CellularSetOperator(int mode, char *operatorName){
     }
 }
 
+
 /**
  * Forces the modem to search for available operators (see "+COPS=?" command).
  * @param opList - a pointer to the first item of an array of type CELLULAR_OP_INFO, which is
@@ -300,31 +302,50 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 }
 
 
-bool sendCmdAndGetResponse(unsigned int cmd_size, unsigned char * expected_response,
-                           unsigned int response_size, int max_responses, unsigned int timeout_ms) {
-
-    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    unsigned int bytes_received = 0;
-    int num_of_tokens = 0;
-
-    while (!SerialSend(command_to_send_buffer, cmd_size));
-
-    do {
-        memset(incoming_buffer, '\0', bytes_received);
-        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
-        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-        num_of_tokens = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
-
-    } while ((memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) != 0) &&
-             (memcmp(response_tokens[num_of_tokens-1], AT_RES_ERROR, 5) != 0)   &&
-             (memcmp(response_tokens[num_of_tokens-1], AT_RES_CME, 4) != 0));
-
-    return memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) == 0;
-
-//todo
-
-}
+//bool sendCmdAndGetResponse(unsigned int cmd_size, unsigned char * expected_response,
+//                           unsigned int response_size, int max_responses, unsigned int timeout_ms) {
+//
+//    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+//    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
+//    unsigned int bytes_received = 0;
+//    num_of_tokens_found = 0;
+//    response_tokens = {};
+//
+//    while (!SerialSend(command_to_send_buffer, cmd_size));
+//
+//    bool wait_for_response_or_error = true;
+//
+//    while (wait_for_response_or_error) {
+//        memset(incoming_buffer, '\0', bytes_received);
+//        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
+//        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
+//        num_of_tokens_found = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
+//
+//        for (int i=0; i < num_of_tokens_found; i++) {
+//            if (memcmp(response_tokens[i], expected_response, response_size) == 0) {
+//                return true;
+//            } else if (memcmp(response_tokens[i], AT_RES_ERROR, 5) == 0) {
+//                return false;
+//            } else if (memcmp(response_tokens[i], AT_RES_CME, 4) == 0) {
+//                return false;
+//            }
+//        }
+//    }
+////    do {
+////        memset(incoming_buffer, '\0', bytes_received);
+////        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
+////        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
+////        num_of_tokens = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
+////
+////    } while ((memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) != 0) &&
+////             (memcmp(response_tokens[num_of_tokens-1], AT_RES_ERROR, 5) != 0)   &&
+////             (memcmp(response_tokens[num_of_tokens-1], AT_RES_CME, 4) != 0));
+////
+////    return memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) == 0;
+//
+////todo
+//
+//}
 
 bool sendATcommand(unsigned char* command, unsigned int command_size) {
     if (!SerialSend(command, command_size)){
@@ -396,6 +417,161 @@ int getSISURCs(unsigned char ** token_array, int total_expected_urcs, int max_ur
     return num_of_tokens;
 }
 
+/**
+ *
+ * @param sis_result the suffix of "^SIS: " urc
+ * @param urcCause pointer to save urcCause
+ * @param urcInfoId pointer to save urcInfoId
+ * @return false if found error, otherwise true.
+ */
+bool parseSISresponse(char * sis_result, int * urcCause, int * urcInfoId) {
+    char * temp_token = strtok(sis_result, ",");   //<srvProfileId>,
+    temp_token = strtok(NULL, ",");         //<urcCause>
+    *urcCause = atoi(temp_token);
+    temp_token = strtok(NULL, ",");         //<urcInfoId>
+    *urcInfoId = atoi(temp_token);
+
+    // if <urcCause>==0
+    if ((*urcCause == 0) && (1 <= *urcInfoId) && (*urcInfoId <= 2000)) {
+        temp_token = strtok(NULL, ",");         //<urcInfoText>
+        strcpy(last_errmsg, temp_token);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * parse "^SISR: " urc or "^SISW: " urc suffixes
+ * @param sisrw_result "^SISR: " urc or "^SISW: " urc suffixes
+ * @return urcCauseID
+ */
+int parseSISRWresponse(char * sisrw_result) {
+    // sisrw is <srvProfileId>, <urcCauseId>
+    char * urcCauseId = "";
+    strcpy(urcCauseId, &sisrw_result[2]);
+    return atoi(urcCauseId);
+}
+
+/**
+ * this method parse SIS URCs
+ * @param token_array tokens of SIS responses
+ * @param received_urcs num of tokens.
+ * @return false if SIS URC reflecting error, true otherwise
+ */
+bool parseSISURCs(unsigned char ** token_array, int received_urcs, char * urc_read_buffer) {
+    const char urc_delimiter[] = ": ";
+    for (int urc_idx = 0; urc_idx < received_urcs; urc_idx++) {
+        char * urc_prefix = "";
+        char * urc_result = "";
+        char * temp_token = "";
+
+        temp_token = strtok(token_array[urc_idx], urc_delimiter);
+        strcpy(urc_prefix, temp_token);
+        temp_token = strtok(NULL, urc_delimiter);
+        strcpy(urc_result, temp_token);
+
+        if (strcmp(urc_prefix, "ERROR") == 0) {
+            return false;
+
+        } else if (strcmp(urc_prefix, "^SIS") == 0) {
+            int urcCause, urcInfoId;
+            if (!parseSISresponse(urc_result, &urcCause, &urcInfoId)) {
+                return false;
+            }
+
+
+        } else if (strcmp(urc_prefix, "^SISR") == 0) {
+            if (parseSISRWresponse(urc_result) != 1) { return false; }
+
+        } else if (strcmp(urc_prefix, "^SISW") == 0) {
+            if (parseSISRWresponse(urc_result) != 2) { return false; }
+
+        } else if (urc_prefix[0] == '{') {
+            strcpy(urc_read_buffer, urc_prefix);
+        }
+
+    }
+    return true;
+}
+
+
+bool inetServiceSetupProfile(int srvProfileId, char *URL, char *payload, int payload_len) {
+    // AT^SISS=<srvProfileId>, <srvParmTag>, <srvParmValue>
+
+    // AT^SISS=6,"SrvType","Http"
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d,\"SrvType\",\"Http\"%s",
+                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    if (!waitForOK()) { return false; }
+
+    // AT^SISS=6,"conId","<conProfileId>"
+    cmd_size = sprintf(command_to_send_buffer, "%s%d,\"conId\",\"%d\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, conProfileId, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    if (!waitForOK()) { return false; }
+
+    // AT^SISS=6,"address","<url>"
+    cmd_size = sprintf(command_to_send_buffer, "%s%d,\"address\",\"%s\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, URL, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    if (!waitForOK()) { return false; }
+
+
+    // AT^SISS=6,"cmd","1"
+    cmd_size = sprintf(command_to_send_buffer, "%s%d,\"cmd\",\"%d\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, SISS_CMD_HTTP_POST, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    if (!waitForOK()) { return false; }
+
+
+    // AT^SISS=6,"hcContLen","0"
+    // If "hcContLen" = 0 then the data given in the "hcContent" string will be posted
+    // without AT^SISW required.
+    cmd_size = sprintf(command_to_send_buffer, "%s%d,\"hcContLen\",\"%d\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload_len, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    if (!waitForOK()) { return false; }
+
+
+    //AT^SISS=6,"hcContent","HelloWorld!"
+    cmd_size = sprintf(command_to_send_buffer, "%s%d,\"hcContent\",\"%s\"%s",
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+    return waitForOK();
+}
+
+bool inetServiceOpen(int srvProfileID) {
+    //AT^SISO=6
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+
+    // OK or ERROR
+    // ^SIS: 6,0,2200,"Http en8wtnrvtnkt5.x.pipedream.net:443"
+    // ^SISW: 6,2
+    // ^SISR: 6,1
+    char * urc_read_buff = "";
+    unsigned char * tokens_array[10] = {};
+    int received_urcs = getSISURCs(tokens_array, 4, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
+    if (!parseSISURCs(tokens_array, received_urcs, urc_read_buff)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+bool inetServiceClose(int srvProfileID) {
+    //AT^SISC=6
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+
+    return waitForOK();
+}
 
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array, int max_tokens) {
     const char delimiter[] = "\r\n";
@@ -476,42 +652,6 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
     }
 
     return true;
-}
-
-
-int splitSISURCs(unsigned char *cops_response, OPERATOR_INFO *opList, int max_ops) {
-    // [list of supported (<opStatus>, long alphanumeric <opName>, short alphanumeric <opName>,
-    //numeric <opName>, <AcT>)s ]
-    const char op_start_delimiter[] = ": ";
-    char * operator_token;
-    int op_index = 0;
-    operator_token = strtok(cops_response, op_start_delimiter);
-    unsigned char * operators_tokens[max_ops];
-
-    for (int i=0; i < max_ops; i++) {
-        operators_tokens[i] = (unsigned char *) malloc(MAX_INCOMING_BUF_SIZE);
-    }
-
-    while (operator_token != NULL) {
-        if (op_index >= max_ops) {
-            // found max operators
-            break;
-        }
-
-        // set char[] for helper method
-        strcpy(operators_tokens[op_index], operator_token);
-        operator_token = strtok(NULL, op_start_delimiter);
-        op_index++;
-    }
-
-    int parsed_ops_index = 0;
-    for (; op_index > 0; op_index--) {
-        if (splitOpTokensToOPINFO(operators_tokens[parsed_ops_index], &opList[parsed_ops_index])) {
-            parsed_ops_index++;
-        }
-
-    }
-    return parsed_ops_index;
 }
 
 
@@ -602,218 +742,53 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec) {
  *         If there is any kind of error, return -1.
  */
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len) {
-    int num_of_read_bytes_in_response = -1;
-    char * temp_response;
-
     // sanity check: conProfileId exists
-    if (conProfileId == -1) {
-        return -1;
-    }
+    if (conProfileId == -1) { return -1;}
 
-
-    // enable error result code with verbose values
-    while(!sendATCmeeCmd(VERBOSE));
-    //todo
-//    memset(command_to_send_buffer, '\0', MAX_AT_CMD_LEN);
-//    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_CMEE_WRITE_PRFX, VERBOSE, AT_CMD_SUFFIX);
-//    sendCmdAndGetResponse(cmd_size, )
-
-    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
     int srvProfileId = HTTP_POST_srvProfileId;
 
-    // AT^SISS=<srvProfileId>, <srvParmTag>, <srvParmValue>
-
-    //AT^SISS=6,"SrvType","Http"
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    int cmd_size = sprintf(command_to_send, "%s%d,\"SrvType\",\"Http\"%s",
-                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-
-
-    if (!waitForOK()) { return -1; }
-
-    //AT^SISS=6,"conId","<conProfileId>"
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,\"conId\",\"%d\"%s",
-                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, conProfileId, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-    //AT^SISS=6,"address","<url>"
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,\"address\",\"%s\"%s",
-                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, URL, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-
-    //AT^SISS=6,"cmd","1"
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,\"cmd\",\"%d\"%s",
-                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, SISS_CMD_HTTP_POST, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-
-    //AT^SISS=6,"hcContLen","0"
-    // If "hcContLen" = 0 then the data given in the "hcContent" string will be posted
-    // without AT^SISW required.
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,\"hcContLen\",\"%d\"%s",
-                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload_len, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-
-    //AT^SISS=6,"hcContent","HelloWorld!"
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,\"hcContent\",\"%s\"%s",
-                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-    //AT^SISO=6
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-//    if (!waitForOK()) { return -1; }
-
-
-    //todo read URC
-    // OK or ERROR
-    // ^SIS: 6,0,2200,"Http en8wtnrvtnkt5.x.pipedream.net:443"
-    //
-    // ^SISW: 6,2
-    //
-    // ^SISR: 6,1
-
-    bool received_siso_err = false;
-    char r_urc_cause[3] = "";
-    char w_urc_cause[3] = "";
-
-    unsigned char * token_array[10] = {};
-    int received_urcs = getSISURCs(token_array, 4, 10, GENERAL_RECV_TIMEOUT_MS);
-    const char urc_delimiter[] = ": ";
-    for (int urc_idx = 0; urc_idx < received_urcs; urc_idx++) {
-        char * urc_prefix;
-        char * urc_result;
-        char * temp_token;
-
-        temp_token = strtok(token_array[urc_idx], urc_delimiter);
-        strcpy(urc_prefix, temp_token);
-        temp_token = strtok(NULL, urc_delimiter);
-        strcpy(urc_result, temp_token);
-
-        if (strcmp(urc_prefix, "ERROR") == 0) {
-            received_siso_err = true;
-            break;
-
-        } else if (strcmp(urc_prefix, "^SIS") == 0) {
-            temp_token = strtok(urc_result, ",");   //<srvProfileId>,
-            temp_token = strtok(NULL, ",");         //<urcCause>
-            int urcCause = atoi(temp_token);
-            temp_token = strtok(NULL, ",");         //<urcInfoId>
-            int urcInfoId = atoi(temp_token);
-
-            // if <urcCause>==0
-            if ((urcCause == 0) && (1 <= urcInfoId) && (urcInfoId <= 2000)) {
-                temp_token = strtok(NULL, ",");         //<urcInfoText>
-                strcpy(last_errmsg, temp_token);
-                return -1;
-            }
-
-        } else if (strcmp(urc_prefix, "^SISR") == 0) {
-            strcpy(r_urc_cause ,urc_result[2]);
-
-        } else if (strcmp(urc_prefix, "^SISW") == 0) {
-            strcpy(w_urc_cause, urc_result[2]);
-        }
-
-    }
-
-
-    if (received_siso_err || (strcmp(r_urc_cause, "1") != 0)) {
-        // read urc cause != 1 so we failed.
+    if (!inetServiceSetupProfile(srvProfileId, URL, payload, payload_len)) {
         return -1;
     }
 
-    // ready to read/
+    if (!inetServiceOpen(srvProfileId)) {
+        return -1;
+    }
+
+
+    // ready to read
+    char * urc_read_buff = "";
+    unsigned char * tokens_array[10] = {};
 
     // AT^SISR=6,20
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d,%d%s", AT_CMD_SISR_WRITE_PRFX, srvProfileId, response_max_len, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d,%d%s", AT_CMD_SISR_WRITE_PRFX, srvProfileId, response_max_len, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
 
-//    if (!waitForOK()) { return -1; }
-
-    //todo
     // OK or ERROR
     // ^SISR: 6,16
     // {"success":true}
     // OK
     //
     // ^SISR: 6,2
-    bool received_sisr_err = false;
-    unsigned char * token_arrayA[10] = {};
-    int received_urcsA = getSISURCs(token_array, 5, 10, GENERAL_RECV_TIMEOUT_MS);
 
-//    const char urc_delimiter[] = ": ";
-    for (int urc_idx = 0; urc_idx < received_urcsA; urc_idx++) {
+    int received_urcs = getSISURCs(tokens_array, 5, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
+    if (!parseSISURCs(tokens_array, received_urcs, urc_read_buff)) {
+        return -1;
+    }
 
-        if (strcmp(token_array[urc_idx], "OK") == 0) {
-            received_sisr_err = false;
-
-        } else if (strcmp(token_array[urc_idx], "ERROR") == 0) {
-            received_sisr_err = true;
-
-        } else if (token_array[urc_idx][0] == '^') {
-            char * urc_prefix;
-            char * urc_result;
-            char * temp_token;
-
-            temp_token = strtok(token_array[urc_idx], urc_delimiter);
-
-
-            strcpy(urc_prefix, temp_token);
-            temp_token = strtok(NULL, urc_delimiter);
-            strcpy(urc_result, temp_token);
-
-            if (strcmp(urc_prefix, "^SISR") == 0) {
-                strcpy(r_urc_cause, urc_result[2]);
-                num_of_read_bytes_in_response = atoi(urc_result[2]);
-
-            } else if (strcmp(urc_prefix, "^SISW") == 0) {
-                strcpy(w_urc_cause, urc_result[2]);
-            }
-
-        } else if (token_array[urc_idx][0] == '{') {
-            strcpy(temp_response, token_array[urc_idx]);
-        }
-
+    if (!inetServiceClose(srvProfileId)) {
+        return -1;
     }
 
 
-    //AT^SISC=6
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    cmd_size = sprintf(command_to_send, "%s%d", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    if (!waitForOK()) { return -1; }
-
-
-    // enable error result code with verbose values
-    while(!sendATCmeeCmd(DISABLED));
-
     // all went fine
-    strcpy(response, temp_response);
-    return num_of_read_bytes_in_response;
+    strncpy(response, urc_read_buff, response_max_len);
+
+    if (response_max_len < strlen(urc_read_buff)) {
+        return response_max_len;
+    } else {
+        return strlen(urc_read_buff);
+    }
 }
 
 /**
@@ -828,14 +803,4 @@ int CellularGetLastError(char *errmsg, int errmsg_max_len) {
     // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
 
     return 1;
-}
-
-
-bool sendATCmeeCmd(enum ERROR_MODE errMode) {
-    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
-    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-    int cmd_size = sprintf(command_to_send, "%s%d%s", AT_CMD_CMEE_WRITE_PRFX, errMode, AT_CMD_SUFFIX);
-    while (!sendATcommand(command_to_send, cmd_size - 1));
-
-    return waitForOK();
 }

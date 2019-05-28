@@ -11,7 +11,7 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array, int max_tokens);
 int splitCopsResponseToOpsTokens(unsigned char * cops_response, OPERATOR_INFO *opList, int max_ops);
 bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
-
+bool sendATCmeeCmd(enum ERROR_MODE errMode);
 
 /*****************************************************************************
  * 								DEFS
@@ -29,10 +29,16 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define SISS_CMD_HTTP_POST 1
 #define SISS_CMD_HTTP_HEAD 2
 
+#define RESPONSE_TOKENS_SIZE 10
+
 
 /*****************************************************************************
  * 							GLOBAL VARIABLES
 *****************************************************************************/
+
+unsigned char command_to_send_buffer[MAX_AT_CMD_LEN] = "";  //todo
+unsigned char * response_tokens[10] = {};
+
 unsigned char AT_CMD_SUFFIX[] = "\r\n";
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
@@ -47,11 +53,13 @@ unsigned char AT_CMD_SISO_WRITE_PRFX[] = "AT^SISO=";
 unsigned char AT_CMD_SISR_WRITE_PRFX[] = "AT^SISR=";
 unsigned char AT_CMD_SISW_WRITE_PRFX[] = "AT^SISW=";
 unsigned char AT_CMD_SISC_WRITE_PRFX[] = "AT^SISC=";
+unsigned char AT_CMD_CMEE_WRITE_PRFX[] = "AT^CMEE=";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
 unsigned char AT_RES_OK[] = "OK";
 unsigned char AT_RES_ERROR[] = "ERROR";
+unsigned char AT_RES_CME[] = "+CME";
 unsigned char AT_RES_SYSSTART[] = "^SYSSTART";
 unsigned char AT_RES_PBREADY[] = "+PBREADY";
 unsigned char AT_URC_SHUTDOWN[] = "^SHUTDOWN";
@@ -67,6 +75,9 @@ int conProfileId = -1;
 // when using the AT commands AT^SISO, AT^SISR, AT^SISW, AT^SIST, AT^SISH and AT^SISC the
 //<srvProfileId> is needed to select a specific service profile.
 int srvProfileId = -1;
+
+char * last_errmsg = NULL;
+
 
 
 /**
@@ -289,6 +300,32 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 }
 
 
+bool sendCmdAndGetResponse(unsigned int cmd_size, unsigned char * expected_response,
+                           unsigned int response_size, int max_responses, unsigned int timeout_ms) {
+
+    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    unsigned int bytes_received = 0;
+    int num_of_tokens = 0;
+
+    while (!SerialSend(command_to_send_buffer, cmd_size));
+
+    do {
+        memset(incoming_buffer, '\0', bytes_received);
+        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
+        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
+        num_of_tokens = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
+
+    } while ((memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) != 0) &&
+             (memcmp(response_tokens[num_of_tokens-1], AT_RES_ERROR, 5) != 0)   &&
+             (memcmp(response_tokens[num_of_tokens-1], AT_RES_CME, 4) != 0));
+
+    return memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) == 0;
+
+//todo
+
+}
+
 bool sendATcommand(unsigned char* command, unsigned int command_size) {
     if (!SerialSend(command, command_size)){
         return false;
@@ -307,8 +344,9 @@ bool waitForOK() {
         SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, GENERAL_RECV_TIMEOUT_MS);
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array, 10);
 
-    } while (memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0 &&
-             memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0);
+    } while ((memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0) &&
+             (memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, sizeof(AT_RES_ERROR) - 1) != 0) &&
+             (memcmp(token_array[num_of_tokens-1], AT_RES_CME, 4) != 0));
 
 
     return memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) == 0;
@@ -329,8 +367,9 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, max_responses);
 
-    } while (memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0 &&
-             memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, response_size) != 0);
+    } while ((memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0) &&
+              (memcmp(token_array[num_of_tokens-1], AT_RES_ERROR, 5) != 0)   &&
+              (memcmp(token_array[num_of_tokens-1], AT_RES_CME, 4) != 0));
 
     return memcmp(token_array[num_of_tokens-1], expected_response, response_size) == 0;
 }
@@ -565,10 +604,19 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec) {
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len) {
     int num_of_read_bytes_in_response = -1;
     char * temp_response;
+
     // sanity check: conProfileId exists
     if (conProfileId == -1) {
         return -1;
     }
+
+
+    // enable error result code with verbose values
+    while(!sendATCmeeCmd(VERBOSE));
+    //todo
+//    memset(command_to_send_buffer, '\0', MAX_AT_CMD_LEN);
+//    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_CMEE_WRITE_PRFX, VERBOSE, AT_CMD_SUFFIX);
+//    sendCmdAndGetResponse(cmd_size, )
 
     unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
     int srvProfileId = HTTP_POST_srvProfileId;
@@ -580,6 +628,8 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     int cmd_size = sprintf(command_to_send, "%s%d,\"SrvType\",\"Http\"%s",
                            AT_CMD_SISS_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send, cmd_size - 1));
+
+
 
     if (!waitForOK()) { return -1; }
 
@@ -664,8 +714,24 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
         if (strcmp(urc_prefix, "ERROR") == 0) {
             received_siso_err = true;
             break;
+
+        } else if (strcmp(urc_prefix, "^SIS") == 0) {
+            temp_token = strtok(urc_result, ",");   //<srvProfileId>,
+            temp_token = strtok(NULL, ",");         //<urcCause>
+            int urcCause = atoi(temp_token);
+            temp_token = strtok(NULL, ",");         //<urcInfoId>
+            int urcInfoId = atoi(temp_token);
+
+            // if <urcCause>==0
+            if ((urcCause == 0) && (1 <= urcInfoId) && (urcInfoId <= 2000)) {
+                temp_token = strtok(NULL, ",");         //<urcInfoText>
+                strcpy(last_errmsg, temp_token);
+                return -1;
+            }
+
         } else if (strcmp(urc_prefix, "^SISR") == 0) {
             strcpy(r_urc_cause ,urc_result[2]);
+
         } else if (strcmp(urc_prefix, "^SISW") == 0) {
             strcpy(w_urc_cause, urc_result[2]);
         }
@@ -741,6 +807,10 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
 
     if (!waitForOK()) { return -1; }
 
+
+    // enable error result code with verbose values
+    while(!sendATCmeeCmd(DISABLED));
+
     // all went fine
     strcpy(response, temp_response);
     return num_of_read_bytes_in_response;
@@ -753,7 +823,19 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
  * @param errmsg_max_len
  * @return
  */
-int CellularGetLastError(char *errmsg, int errmsg_max_len ){
-    //todo
+int CellularGetLastError(char *errmsg, int errmsg_max_len) {
+    // todo
+    // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
+
     return 1;
+}
+
+
+bool sendATCmeeCmd(enum ERROR_MODE errMode) {
+    unsigned char command_to_send[MAX_AT_CMD_LEN] = "";
+    memset(command_to_send, '\0', MAX_AT_CMD_LEN);
+    int cmd_size = sprintf(command_to_send, "%s%d%s", AT_CMD_CMEE_WRITE_PRFX, errMode, AT_CMD_SUFFIX);
+    while (!sendATcommand(command_to_send, cmd_size - 1));
+
+    return waitForOK();
 }

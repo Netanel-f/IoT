@@ -26,6 +26,8 @@ typedef struct __OPERATOR_INFO {
 *****************************************************************************/
 static bool CELLULAR_INITIALIZED = false;
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
+enum ERROR_MODE {DISABLED, NUMERIC, VERBOSE};
+
 
 /**
  * Initialize whatever is needed to start working with the cellular modem (e.g. the serial port).

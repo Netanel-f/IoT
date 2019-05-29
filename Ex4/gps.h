@@ -93,4 +93,5 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
  */
 void GPSDisable();
 
+void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time);
 #endif /* GPS_H_ */

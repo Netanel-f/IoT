@@ -4,6 +4,7 @@
  * @version 0.0.1
  *  ***************************************************************************/
 #include <stdlib.h>
+#include <time.h>
 #include "gps.h"
 
 
@@ -264,4 +265,32 @@ void GPSDisable() {
         SerialDisable();
         GPS_INITIALIZED = false;
     }
+}
+
+void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time) {
+    struct tm current_time;
+    char hour[3];
+    strncpy(hour, gps_data->fixtime, 2);
+    char minutes[3];
+    strncpy(minutes, &gps_data->fixtime[3], 2);
+    char seconds[3];
+    strncpy(seconds, &gps_data->fixtime[6], 2);
+    char day[3];
+    strncpy(day, &gps_data->fixtime[9], 2);
+    char month[3];
+    strncpy(month, &gps_data->fixtime[12], 2);
+    char year[3];
+    strncat(year, &gps_data->fixtime[15], 2);
+
+
+
+    current_time.tm_hour = atoi(hour);
+    current_time.tm_min = atoi(minutes);
+    current_time.tm_sec = atoi(seconds);
+    current_time.tm_mday = atoi(day);
+    current_time.tm_mon = atoi(month);
+    current_time.tm_year = atoi(year) + 100;
+
+    time_t unix_time_stamp = mktime(&current_time);
+    sprintf(unix_time, "%s", unix_time_stamp);
 }

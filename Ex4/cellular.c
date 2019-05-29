@@ -24,7 +24,6 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define MAX_conProfileId 5
 //#define MAX_srvProfileId 9
 #define HTTP_POST_srvProfileId 6
-#define ICCID_BUFFER_SIZE 23
 
 #define SISS_CMD_HTTP_GET 0
 #define SISS_CMD_HTTP_POST 1
@@ -701,7 +700,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo) {
         field_token = (unsigned char *) strtok(NULL, op_field_delimiter);
         field_index++;
     }
-
+    opInfo->csq = 99;
     return true;
 }
 

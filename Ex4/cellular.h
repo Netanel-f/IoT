@@ -19,6 +19,7 @@ typedef struct __OPERATOR_INFO {
     char operatorName[20];
     int  operatorCode;
     char accessTechnology[4];
+    int  csq;
 } OPERATOR_INFO;
 
 /**************************************************************************//**
@@ -27,7 +28,7 @@ typedef struct __OPERATOR_INFO {
 static bool CELLULAR_INITIALIZED = false;
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
 enum ERROR_MODE {DISABLED, NUMERIC, VERBOSE};
-
+#define ICCID_BUFFER_SIZE 23
 
 /**
  * Initialize whatever is needed to start working with the cellular modem (e.g. the serial port).

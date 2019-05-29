@@ -6,12 +6,14 @@
 #include "cellular.h"
 #include "gps.h"
 #include "string.h"
+#include "time.h"
 
 /*****************************************************************************
  * 								DEFS
 *****************************************************************************/
 #define MODEM_PORT "COM5"
 #define MAX_IL_CELL_OPS 20
+#define NAMES "NetanelFayoumi_SapirElyovitch"
 
 
 int main() {
@@ -37,7 +39,7 @@ int main() {
     //      transmit current GPS cords + tag: highspeed = true
     //   if we passed the limit but now we are ok:
     //      transmit current GPS cords + tag: highspeed = false
-    //   if BTN0 clieck go back to park 1.
+    //   if BTN0 click go back to part 1.
 
 
     // setting stdout to flush prints immediately
@@ -92,10 +94,13 @@ int main() {
                 int signal_quality = -1;
                 if (CellularGetSignalQuality(&signal_quality)) {
                     printf("Current signal quality: %ddBm\n", signal_quality);
+                    operators_info[op_index].csq = signal_quality;
                 } else if (signal_quality == -1){
                     printf("Modem didn't respond.\n");
+                    operators_info[op_index].csq = 99;
                 } else if (signal_quality == 99) {
                     printf("Current signal quality is UNKNOWN.\n");
+                    operators_info[op_index].csq = signal_quality;
                 }
                 continue;
             }
@@ -107,5 +112,53 @@ int main() {
     printf("Disabling Cellular and exiting...\n");
     CellularDisable();
     exit(0);
+}
+
+
+/**
+ * return gps payload string lat=,long=,alt=,hdop=,valid_fix=,num_sats= unix_timestamp
+ * @param gps_payload where to store result
+ * @return length of payload
+ */
+int GPSGetPayload(GPS_LOCATION_INFO * gps_data, char * gps_payload) {
+    char unix_time[35];
+    GPSConvertFixtimeToUnixTime(gps_data, unix_time);
+    char iccid[ICCID_BUFFER_SIZE];
+    CellularGetICCID(iccid);
+    //latitude= 31.7498445,longitude= 35.1838178,altitude=10,hdop=2,valid_fix=1,num_sats=4 1557086230000000000
+    int payload_len = sprintf(gps_payload, "--data-binary gps,name=%s,ICCID=%s latitude=%u,longitude= %u,altitude=%u,hdop=%u,valid_fix=%u,num_sats=%u %s",
+            NAMES, iccid, gps_data->latitude, gps_data->longitude, gps_data->altitude, gps_data->hdop, gps_data->valid_fix, gps_data->num_sats, unix_time);
+    return payload_len;
+}
+
+/**
+ *
+ * @param opList OPERATOR_INFO array of successfully registerd operators.
+ * @param num_of_ops num of operators in array
+ * @param unix_time unix time provided from gps
+ * @param cell_payload buffer to store payload into.
+ * @return length of payload copied to buffer.
+ */
+int CellularGetPayload(OPERATOR_INFO *opList, int num_of_ops, char * unix_time, char * cell_payload) {
+    char iccid[ICCID_BUFFER_SIZE];
+    CellularGetICCID(iccid);
+
+    char operators_payload[300] = "";
+
+    for (int op_idx = 0; op_idx < num_of_ops; op_idx++) {
+        char current_op[30] = "";
+        sprintf(current_op, "opt%dname=%d,opt%dcsq=%d",
+                op_idx, opList[op_idx].operatorCode, op_idx, opList[op_idx].csq);
+
+        strcat(operators_payload, current_op);
+        if (op_idx != num_of_ops -1) {
+            strcat(operators_payload, ",");
+        }
+    }
+
+    //8935201641400948300 opt1name= 42501,opt1csq=17,opt2name=42502,opt2csq=5,opt3name=42503,opt3csq=28 1557086230000000000
+    int payload_len = sprintf(cell_payload, "--data-binary cellular,name=%s,ICCID=%s %s %s",
+                              NAMES, iccid, operators_payload, unix_time);
+    return payload_len;
 }
 

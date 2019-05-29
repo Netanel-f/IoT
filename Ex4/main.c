@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <windows.h>
 
 #include "cellular.h"
 #include "gps.h"
@@ -90,7 +89,7 @@ int main() {
         CellularInit(MODEM_PORT);
 
 
-        // Makes sure it’s responding to AT commands.
+        // Makes sure itâ€™s responding to AT commands.
         // looping to check modem responsiveness.
         while (!CellularCheckModem()) {
             Sleep(10);
@@ -207,7 +206,7 @@ int main() {
 
     }
     //todo dont disable
-    // Print the program’s progress all along (e.g. “Checking modem…the modem is ready!”  etc.)
+    // Print the programâ€™s progress all along (e.g. â€œChecking modemâ€¦the modem is ready!â€�  etc.)
     printf("Disabling Cellular and exiting...\n");
     CellularDisable();
     GPSDisable();

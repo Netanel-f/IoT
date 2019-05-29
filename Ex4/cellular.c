@@ -330,7 +330,6 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
         unsigned int response_size, int max_responses, unsigned int timeout_ms) {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
     unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
-    unsigned int last_bytes_received = 0;
     unsigned int bytes_received = 0;
     int num_of_tokens = 0;
 

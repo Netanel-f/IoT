@@ -22,6 +22,7 @@ typedef struct __OPERATOR_INFO {
     int  csq;
 } OPERATOR_INFO;
 
+#define MODEM_BAUD_RATE 115200
 #define ICCID_BUFFER_SIZE 23
 #define CELL_PAYLOAD_FORMAT "--data-binary cellular,name=NetanelFayoumi_SapirElyovitch,ICCID=%s %s %s"
 

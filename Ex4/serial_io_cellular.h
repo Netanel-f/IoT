@@ -2,8 +2,8 @@
 // Created by Sapir on 06-Apr-19.
 //
 
-#ifndef IOT_SERIAL_IO_H
-#define IOT_SERIAL_IO_H
+#ifndef IOT_SERIAL_IO_CELLULAR_H
+#define IOT_SERIAL_IO_CELLULAR_H
 
 #define SERIAL_TIMEOUT -1
 
@@ -19,7 +19,7 @@ volatile uint32_t msTicks;
  * @param baud - baud rate
  * @return true if succesful.
  *****************************************************************************/
-bool SerialInit(char* port, unsigned int baud);
+bool SerialInitCellular(char* port, unsigned int baud);
 
 /**************************************************************************//**
  * @brief Receive data from serial connection.
@@ -27,7 +27,7 @@ bool SerialInit(char* port, unsigned int baud);
  * @param maxlen - maximum length of a line of data.
  * @param timeout_ms - length of the timeout in ms.
  *****************************************************************************/
-unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms);
+unsigned int SerialRecvCellular(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms);
 
 /**
  * writing buf string to serial port
@@ -35,23 +35,23 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
  * @param size
  * @return true on success
  */
-bool SerialSend(unsigned char *buf, unsigned int size);
+bool SerialSendCellular(unsigned char *buf, unsigned int size);
 
 /**************************************************************************//**
  * @brief Empties the input buffer.
  *****************************************************************************/
-void SerialFlushInputBuff(void);
+void SerialFlushInputBuffCellular(void);
 
 /**************************************************************************//**
  * @brief Disable the serial connection.
  *****************************************************************************/
-void SerialDisable();
+void SerialDisableCellular();
 
 /***************************************************************************//**
  * @brief Delays number of msTick Systicks (typically 1 ms)
  * @param dlyTicks Number of ticks to delay
  ******************************************************************************/
-void Delay(uint32_t ms);
+void DelayCellular(uint32_t ms);
 
 
-#endif //IOT_SERIAL_IO_H
+#endif //IOT_SERIAL_IO_CELLULAR_H

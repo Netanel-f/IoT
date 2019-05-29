@@ -1,5 +1,5 @@
 #include "cellular.h"
-#include "serial_io.h"
+#include "serial_io_cellular.h"
 
 
 /****************************************************************************
@@ -15,7 +15,6 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 /*****************************************************************************
  * 								DEFS
 *****************************************************************************/
-#define MODEM_BAUD_RATE 115200
 #define MAX_INCOMING_BUF_SIZE 1000
 #define MAX_AT_CMD_LEN 100
 #define GENERAL_RECV_TIMEOUT_MS 100
@@ -90,7 +89,7 @@ void CellularInit(char *port){
     printf("Initializing Cellular modem... ");
 
     if (!CELLULAR_INITIALIZED) {
-        CELLULAR_INITIALIZED = SerialInit(port, MODEM_BAUD_RATE);
+        CELLULAR_INITIALIZED = SerialInitCellular(port, MODEM_BAUD_RATE);
         if (!CELLULAR_INITIALIZED) {
             printf("Initialization FAILED\n");
             exit(EXIT_FAILURE);
@@ -125,7 +124,7 @@ void CellularDisable(){
         while (!sendATcommand(AT_CMD_SHUTDOWN, sizeof(AT_CMD_SHUTDOWN) - 1));
 
         // Disable serial connection
-        SerialDisable();
+        SerialDisableCellular();
         CELLULAR_INITIALIZED = false;
     }
 }
@@ -349,7 +348,8 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 //}
 
 bool sendATcommand(unsigned char* command, unsigned int command_size) {
-    if (!SerialSend(command, command_size)){
+    printf(command);//todo
+    if (!SerialSendCellular(command, command_size)){
         return false;
     }
     return true;
@@ -363,7 +363,7 @@ bool waitForOK() {
     int num_of_tokens = 0;
 
     do {
-        SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, GENERAL_RECV_TIMEOUT_MS);
+        SerialRecvCellular(incoming_buffer, MAX_INCOMING_BUF_SIZE, GENERAL_RECV_TIMEOUT_MS);
         num_of_tokens = splitBufferToResponses(incoming_buffer, token_array, 10);
 
     } while ((memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0) &&
@@ -385,7 +385,7 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
 
     do {
         memset(incoming_buffer, '\0', bytes_received);
-        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
+        bytes_received = SerialRecvCellular(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, max_responses);
 
@@ -405,7 +405,7 @@ int getSISURCs(unsigned char ** token_array, int total_expected_urcs, int max_ur
 
     do {
         memset(incoming_buffer, '\0', bytes_received);
-        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
+        bytes_received = SerialRecvCellular(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, max_urcs);
 

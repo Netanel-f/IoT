@@ -12,7 +12,7 @@
  * @brief Initiate GPS connection.
  *****************************************************************************/
 void GPSInit(char * port) {
-    GPS_INITIALIZED = SerialInit(port, BAUD_RATE);
+    GPS_INITIALIZED = SerialInitGPS(port, GPS_BAUD_RATE);
     if (!GPS_INITIALIZED) {
         exit(EXIT_FAILURE);
     }
@@ -26,7 +26,7 @@ void GPSInit(char * port) {
  *****************************************************************************/
 uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen) {
     if (GPS_INITIALIZED) {
-        return SerialRecv((unsigned char*) buf, maxlen, RECV_TIMEOUT_MS);
+        return SerialRecvGPS((unsigned char*) buf, maxlen, RECV_TIMEOUT_MS);
     }
     else {
         return 0;
@@ -250,6 +250,7 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
         // call GPSGetReadRaw
         bytes_read = GPSGetReadRaw(buf, MAX_NMEA_LEN);
         if (bytes_read > 0) {
+            printf("%s\n", buf);//todo del
             result = parseRawData(buf, location);
         }
     }
@@ -262,7 +263,7 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
  *****************************************************************************/
 void GPSDisable() {
     if (GPS_INITIALIZED) {
-        SerialDisable();
+        SerialDisableGPS();
         GPS_INITIALIZED = false;
     }
 }

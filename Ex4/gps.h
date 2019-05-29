@@ -9,14 +9,15 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
-#include "serial_io.h"
+#include "gps.h"
+#include "serial_io_gps.h"
 
 /**************************************************************************//**
  * 								DEFS
 *****************************************************************************/
 
 
-#define BAUD_RATE 9600
+#define GPS_BAUD_RATE 9600
 #define MAX_NMEA_LEN 82
 #define RECV_TIMEOUT_MS 3000
 
@@ -79,7 +80,7 @@ uint32_t GPSGetReadRaw(char *buf, unsigned int maxlen);
 /**
  * Updates location with information from GPSGetReadRaw.
  * @param location - the struct to be filled.
- * @return 0 if successful, -1 otherwise.
+ * @return true if successful, false otherwise.
  */
 bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
 
@@ -91,7 +92,7 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location);
 void GPSDisable();
 
 void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time);
-#endif /* GPS_H_ */
+
 
 /**
   *
@@ -100,3 +101,5 @@ void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time)
   * @return length of payload
   */
 int GPSGetPayload(GPS_LOCATION_INFO * gps_data, char * iccid, char * gps_payload);
+
+#endif /* GPS_H_ */

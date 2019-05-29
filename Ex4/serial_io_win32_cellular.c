@@ -1,5 +1,5 @@
 
-#include "serial_io.h"
+#include "serial_io_cellular.h"
 #include <windows.h>
 #include <time.h>
 
@@ -13,7 +13,7 @@ static COMMTIMEOUTS timeouts;
  * @param baud - baud rate
  * @return true if successful.
  *****************************************************************************/
-bool SerialInit(char* port, unsigned int baud)
+bool SerialInitCellular(char* port, unsigned int baud)
 {
     char fullPort[20];
     DCB state;
@@ -96,7 +96,7 @@ bool SerialInit(char* port, unsigned int baud)
  * @param maxlen - maximum length of a line of data.
  * @param timeout_ms - length of the timeout in ms.
  *****************************************************************************/
-unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms){
+unsigned int SerialRecvCellular(unsigned char* buf, unsigned int maxlen, unsigned int timeout_ms){
     DWORD dwBytes = 0;
     timeouts.ReadTotalTimeoutConstant = timeout_ms;
     SetCommTimeouts(hComm, &timeouts);
@@ -117,7 +117,7 @@ unsigned int SerialRecv(unsigned char* buf, unsigned int maxlen, unsigned int ti
  * @param size
  * @return
  */
-bool SerialSend(unsigned char *buf, unsigned int size) {
+bool SerialSendCellular(unsigned char *buf, unsigned int size) {
     DWORD numOfBytesWritten = 0;
 //    SerialFlushInputBuff();
     return WriteFile(hComm, buf, size, &numOfBytesWritten, NULL);
@@ -133,7 +133,7 @@ void SerialFlushInputBuff(void){
 /**************************************************************************//**
  * @brief Disable the serial connection.
  *****************************************************************************/
-void SerialDisable(){
+void SerialDisableCellular(){
     SerialFlushInputBuff();
     CloseHandle(hComm); //Closing the Serial Port
 }
@@ -142,7 +142,7 @@ void SerialDisable(){
  * @brief Delays number of msTick Systicks (typically 1 ms)
  * @param dlyTicks Number of ticks to delay
  ******************************************************************************/
-void Delay(uint32_t ms){
+void DelayCellular(uint32_t ms){
     time_t init_time = time(NULL);
     time_t current_time = time(NULL);
     double diff_seconds = difftime(current_time, init_time);

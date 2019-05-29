@@ -12,10 +12,10 @@
  * 								DEFS
 *****************************************************************************/
 #ifdef _WIN64
-static char* GPS_PORT = "COM3";//todo check
+static char* GPS_PORT = "COM4";//todo check
 static char* MODEM_PORT = "COM5";
 #elif _WIN32
-static char* GPS_PORT = "COM3";
+static char* GPS_PORT = "COM4";
 static char* MODEM_PORT = "COM5";
 #else
 static char* GPS_PORT = "3";
@@ -23,7 +23,6 @@ static char* MODEM_PORT = "5";
 #endif
 
 #define MAX_IL_CELL_OPS 20
-#define NAMES "NetanelFayoumi_SapirElyovitch"
 #define TRANSMIT_URL "https://en8wtnrvtnkt5.x.pipedream.net/write?db=mydb"
 
 
@@ -72,14 +71,20 @@ int main() {
     bool BTN_flag = true;
     while (BTN_flag) {
 
-        //todo GET GPS DATA
-        if (!GPSGetFixInformation(last_location)) {
-            // todo do i need only RMC?
-            //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
-            // if no GPS data could be retrieved, don't send anything.
-            BTN_flag = false;
-            break;
-        }
+
+//        //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
+//        // if no GPS data could be retrieved, don't send anything.
+//        int fixed_gps_info_loop = 10;
+//        while (fixed_gps_info_loop > 0) {
+//            if (GPSGetFixInformation(last_location)) {
+//                fixed_gps_info_loop--;
+//            }
+//        }
+//
+//        if (last_location->valid_fix == 0) {
+//            BTN_flag = false;
+//            break;
+//        }
 
         // Initialize the cellular modems.
         CellularInit(MODEM_PORT);
@@ -163,7 +168,7 @@ int main() {
                 // verify registration to operator and check status
                 if (!(CellularGetRegistrationStatus(&registration_status) &&
                       (registration_status == 1 || registration_status == 5))) {
-                    Delay(60000);
+                    DelayGPS(60000);
                     if (!(CellularGetRegistrationStatus(&registration_status) &&
                           (registration_status == 1 || registration_status == 5))) {
                         continue;
@@ -205,6 +210,7 @@ int main() {
     // Print the program’s progress all along (e.g. “Checking modem…the modem is ready!”  etc.)
     printf("Disabling Cellular and exiting...\n");
     CellularDisable();
+    GPSDisable();
     free(last_location);//todo
     exit(0);
 }

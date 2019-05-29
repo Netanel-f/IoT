@@ -109,7 +109,8 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec);
  * @param payload_len
  * @param response
  * @param response_max_len
- * @return
+ * @return The return value indicates the number of read bytes in response.
+ *         If there is any kind of error, return -1.
  */
 int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char *response, int response_max_len);
 

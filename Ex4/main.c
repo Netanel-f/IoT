@@ -72,19 +72,19 @@ int main() {
     while (BTN_flag) {
 
 
-//        //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
-//        // if no GPS data could be retrieved, don't send anything.
-//        int fixed_gps_info_loop = 10;
-//        while (fixed_gps_info_loop > 0) {
-//            if (GPSGetFixInformation(last_location)) {
-//                fixed_gps_info_loop--;
-//            }
-//        }
-//
-//        if (last_location->valid_fix == 0) {
-//            BTN_flag = false;
-//            break;
-//        }
+        //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
+        // if no GPS data could be retrieved, don't send anything.
+        int fixed_gps_info_loop = 10;
+        while (fixed_gps_info_loop > 0) {
+            if (GPSGetFixInformation(last_location)) {
+                fixed_gps_info_loop--;
+            }
+        }
+
+        if (last_location->valid_fix == 0) {
+            BTN_flag = false;
+            break;
+        }
 
         // Initialize the cellular modems.
         CellularInit(MODEM_PORT);
@@ -176,10 +176,12 @@ int main() {
                 }
 
                 // we registered to operator, setup inet connection
-                CellularSetupInternetConnectionProfile(60);
+                if (!CellularSetupInternetConnectionProfile(60)) {
+                    continue;
+                }
 
                 // get CCID
-                char iccid[ICCID_BUFFER_SIZE];
+                char iccid[ICCID_BUFFER_SIZE] = "";
                 CellularGetICCID(iccid);
 
                 // todo transmit GPS data over HTTP

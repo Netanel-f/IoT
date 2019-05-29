@@ -11,7 +11,17 @@
 /*****************************************************************************
  * 								DEFS
 *****************************************************************************/
-#define MODEM_PORT "COM5"
+#ifdef _WIN64
+static char* GPS_PORT = "COM3";//todo check
+static char* MODEM_PORT = "COM5";
+#elif _WIN32
+static char* GPS_PORT = "COM3";
+static char* MODEM_PORT = "COM5";
+#else
+static char* GPS_PORT = "3";
+static char* MODEM_PORT = "5";
+#endif
+
 #define MAX_IL_CELL_OPS 20
 #define NAMES "NetanelFayoumi_SapirElyovitch"
 #define TRANSMIT_URL "https://en8wtnrvtnkt5.x.pipedream.net/write?db=mydb"
@@ -48,7 +58,7 @@ int main() {
 
 
     // Initialize the GPS.
-    GPSInit();
+    GPSInit(GPS_PORT);
 
     //todo free
     GPS_LOCATION_INFO* last_location = malloc(sizeof(GPS_LOCATION_INFO));
@@ -64,6 +74,7 @@ int main() {
 
         //todo GET GPS DATA
         if (!GPSGetFixInformation(last_location)) {
+            // todo do i need only RMC?
             //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
             // if no GPS data could be retrieved, don't send anything.
             BTN_flag = false;

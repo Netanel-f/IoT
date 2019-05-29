@@ -11,8 +11,8 @@
 /**************************************************************************//**
  * @brief Initiate GPS connection.
  *****************************************************************************/
-void GPSInit() {
-    GPS_INITIALIZED = SerialInit(PORT, BAUD_RATE);
+void GPSInit(char * port) {
+    GPS_INITIALIZED = SerialInit(port, BAUD_RATE);
     if (!GPS_INITIALIZED) {
         exit(EXIT_FAILURE);
     }

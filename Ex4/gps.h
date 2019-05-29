@@ -15,11 +15,6 @@
  * 								DEFS
 *****************************************************************************/
 
-#ifdef _WIN32
-static char* PORT = "COM5";//todo check
-#else
-static char* PORT = "3";
-#endif
 
 #define BAUD_RATE 9600
 #define MAX_NMEA_LEN 82
@@ -71,7 +66,7 @@ static bool GPS_INITIALIZED = false;
 /**************************************************************************//**
  * @brief Initiate GPS connection.
 *****************************************************************************/
-void GPSInit();
+void GPSInit(char * port);
 
 /**
  * Gets line from GPS.

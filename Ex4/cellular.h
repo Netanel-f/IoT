@@ -22,14 +22,16 @@ typedef struct __OPERATOR_INFO {
     int  csq;
 } OPERATOR_INFO;
 
+#define ICCID_BUFFER_SIZE 23
+#define CELL_PAYLOAD_FORMAT "--data-binary cellular,name=NetanelFayoumi_SapirElyovitch,ICCID=%s %s %s"
+
 /**************************************************************************//**
  * 							GLOBAL VARIABLES
 *****************************************************************************/
 static bool CELLULAR_INITIALIZED = false;
 enum MODE{REG_AUTOMATICALLY, SPECIFIC_OP, DEREGISTER};
-enum ERROR_MODE {DISABLED, NUMERIC, VERBOSE};
-#define ICCID_BUFFER_SIZE 23
 
+enum ERROR_MODE {DISABLED, NUMERIC, VERBOSE};
 /**
  * Initialize whatever is needed to start working with the cellular modem (e.g. the serial port).
  * @param port
@@ -130,5 +132,15 @@ int CellularGetLastError(char *errmsg, int errmsg_max_len);
  * @return ICCID length
  */
 int CellularGetICCID(char * iccid);
+
+/**
+ *
+ * @param opList OPERATOR_INFO array of successfully registerd operators.
+ * @param num_of_ops num of operators in array
+ * @param unix_time unix time provided from gps
+ * @param cell_payload buffer to store payload into.
+ * @return length of payload copied to buffer.
+ */
+int CellularGetPayload(OPERATOR_INFO *opList, int num_of_ops, char * unix_time, char * cell_payload);
 
 #endif //IOT_CELLULAR_H

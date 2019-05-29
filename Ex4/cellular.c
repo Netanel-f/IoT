@@ -888,3 +888,33 @@ int CellularGetICCID(char * iccid) {
 
     return resolveCCIDresult(iccid);
 }
+
+/**
+ *
+ * @param opList OPERATOR_INFO array of successfully registerd operators.
+ * @param num_of_ops num of operators in array
+ * @param unix_time unix time provided from gps
+ * @param cell_payload buffer to store payload into.
+ * @return length of payload copied to buffer.
+ */
+int CellularGetPayload(OPERATOR_INFO *opList, int num_of_ops, char * unix_time, char * cell_payload) {
+    char iccid[ICCID_BUFFER_SIZE];
+    CellularGetICCID(iccid);
+
+    char operators_payload[300] = "";
+
+    for (int op_idx = 0; op_idx < num_of_ops; op_idx++) {
+        char current_op[30] = "";
+        sprintf(current_op, "opt%dname=%d,opt%dcsq=%d",
+                op_idx, opList[op_idx].operatorCode, op_idx, opList[op_idx].csq);
+
+        strcat(operators_payload, current_op);
+        if (op_idx != num_of_ops -1) {
+            strcat(operators_payload, ",");
+        }
+    }
+
+    //8935201641400948300 opt1name= 42501,opt1csq=17,opt2name=42502,opt2csq=5,opt3name=42503,opt3csq=28 1557086230000000000
+    int payload_len = sprintf(cell_payload, CELL_PAYLOAD_FORMAT, iccid, operators_payload, unix_time);
+    return payload_len;
+}

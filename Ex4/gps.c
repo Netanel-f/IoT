@@ -294,3 +294,23 @@ void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time)
     time_t unix_time_stamp = mktime(&current_time);
     sprintf(unix_time, "%s", unix_time_stamp);
 }
+
+
+/**
+ *
+ * @param gps_data GPS LOCATION as received from GPS module
+ * @param gps_payload where to store result
+ * @return length of payload
+ */
+int GPSGetPayload(GPS_LOCATION_INFO * gps_data, char * iccid, char * gps_payload) {
+    char unix_time[35];
+    GPSConvertFixtimeToUnixTime(gps_data, unix_time);
+//    char iccid[ICCID_BUFFER_SIZE];
+//    CellularGetICCID(iccid);
+    //latitude= 31.7498445,longitude= 35.1838178,altitude=10,hdop=2,valid_fix=1,num_sats=4 1557086230000000000
+    int payload_len = sprintf(gps_payload, GPS_PAYLOAD_FORMAT,
+                              iccid, gps_data->latitude, gps_data->longitude, gps_data->altitude,
+                              gps_data->hdop, gps_data->valid_fix, gps_data->num_sats, unix_time);
+
+    return payload_len;
+}

@@ -49,6 +49,8 @@ static char* PORT = "3";
 
 #define DATE_FORMAT "%c%c:%c%c:%c%c %c%c.%c%c.%c%c"
 
+#define GPS_PAYLOAD_FORMAT "--data-binary gps,name=NetanelFayoumi_SapirElyovitch,ICCID=%s latitude=%u,longitude= %u,altitude=%u,hdop=%u,valid_fix=%u,num_sats=%u %s"
+
 typedef __packed struct _GPS_LOCATION_INFO {
     int32_t latitude;
     int32_t longitude;
@@ -95,3 +97,11 @@ void GPSDisable();
 
 void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time);
 #endif /* GPS_H_ */
+
+/**
+  *
+  * @param gps_data GPS LOCATION as received from GPS module
+  * @param gps_payload where to store result
+  * @return length of payload
+  */
+int GPSGetPayload(GPS_LOCATION_INFO * gps_data, char * iccid, char * gps_payload);

@@ -54,7 +54,7 @@ unsigned char AT_CMD_SISO_WRITE_PRFX[] = "AT^SISO=";
 unsigned char AT_CMD_SISR_WRITE_PRFX[] = "AT^SISR=";
 unsigned char AT_CMD_SISW_WRITE_PRFX[] = "AT^SISW=";
 unsigned char AT_CMD_SISC_WRITE_PRFX[] = "AT^SISC=";
-unsigned char AT_CMD_CMEE_WRITE_PRFX[] = "AT+CMEE=";
+unsigned char AT_CMD_SISE_WRITE_PRFX[] = "AT^SISE=";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
@@ -446,11 +446,26 @@ bool parseSISresponse(char * sis_result, int * urcCause, int * urcInfoId) {
  * @return urcCauseID
  */
 int parseSISRWresponse(char * sisrw_result) {
-    // sisrw is <srvProfileId>, <urcCauseId>
+    //^SISR: <srvProfileId>, <urcCauseId>
     char * urcCauseId = "";
     strcpy(urcCauseId, &sisrw_result[2]);
     return atoi(urcCauseId);
 }
+
+///**
+// * parse "^SISE: " urc suffix
+// * @param sise_result "^SISR: " urc suffixes
+// * @return urcCauseID
+// */
+//int parseSISEresponse(char * sise_result, char * response_buffer) {
+//    // ^SISE: <srvProfileId>, <infoID>[, <info>]
+//    char * temp_token = strtok(sise_result, ",");   //<srvProfileId>
+//    temp_token = strtok(NULL, ",");                 //<infoID>
+//    char * urcCauseId = "";
+//    strcpy(urcCauseId, &sisrw_result[2]);
+//    return atoi(urcCauseId);
+//}
+
 
 /**
  * this method parse SIS URCs
@@ -474,16 +489,23 @@ bool parseSISURCs(unsigned char ** token_array, int received_urcs, char * urc_re
             return false;
 
         } else if (strcmp(urc_prefix, "^SIS") == 0) {
+            //^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
             int urcCause, urcInfoId;
             if (!parseSISresponse(urc_result, &urcCause, &urcInfoId)) {
                 return false;
             }
 
+        } else if (strcmp(urc_prefix, "^SISE") == 0) {
+            //^SISE: <srvProfileId>, <infoID>[, <info>]
+            strcpy(urc_read_buffer, &urc_result[2]);
+            return true;
 
         } else if (strcmp(urc_prefix, "^SISR") == 0) {
+            //^SISR: <srvProfileId>, <urcCauseId>
             if (parseSISRWresponse(urc_result) != 1) { return false; }
 
         } else if (strcmp(urc_prefix, "^SISW") == 0) {
+            //^SISW: <srvProfileId>, <urcCauseId>
             if (parseSISRWresponse(urc_result) != 2) { return false; }
 
         } else if (urc_prefix[0] == '{') {
@@ -567,7 +589,7 @@ bool inetServiceOpen(int srvProfileID) {
 
 bool inetServiceClose(int srvProfileID) {
     //AT^SISC=6
-    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISC_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
 
     return waitForOK();
@@ -803,14 +825,26 @@ int CellularGetLastError(char *errmsg, int errmsg_max_len) {
     // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
 
     // AT^SISE=<srvProfileId>
-    int cmd_size = sprintf(command_to_send_buffer, "%s%d,\"SrvType\",\"Http\"%s",
-                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d%s",
+                           AT_CMD_SISE_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     // send command and check response OK/ERROR
     while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
 
+    char * urc_read_buff = "";
+    unsigned char * tokens_array[10] = {};
     // response:
     // ^SISE: <srvProfileId>, <infoID>[, <info>]
-    if (!waitForOK()) { return false; }
+    int received_urcs = getSISURCs(tokens_array, 2, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
+    if (!parseSISURCs(tokens_array, received_urcs, urc_read_buff)) {
+        return -1;
+    }
 
-    return 1;
+    // all went fine
+    strncpy(errmsg, urc_read_buff, errmsg_max_len);
+
+    if (errmsg_max_len < strlen(urc_read_buff)) {
+        return errmsg_max_len;
+    } else {
+        return strlen(urc_read_buff);
+    }
 }

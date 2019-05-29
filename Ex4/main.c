@@ -75,7 +75,7 @@ int main() {
         //https://moodle2.cs.huji.ac.il/nu18/mod/forum/discuss.php?d=56363
         // if no GPS data could be retrieved, don't send anything.
         int fixed_gps_info_loop = 10;
-        while (fixed_gps_info_loop > 0) {
+        while (fixed_gps_info_loop > 0) {//todo while (lastloc.tim != null)?
             if (GPSGetFixInformation(last_location)) {
                 fixed_gps_info_loop--;
             }
@@ -83,6 +83,7 @@ int main() {
 
         if (last_location->valid_fix == 0) {
             BTN_flag = false;
+            printf("validfix = 0\n");
             break;
         }
 

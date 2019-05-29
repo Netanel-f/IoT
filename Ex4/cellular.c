@@ -75,7 +75,7 @@ int conProfileId = -1;
 // The <srvProfileId> is used to reference all parameters related to the same service profile. Furthermore,
 // when using the AT commands AT^SISO, AT^SISR, AT^SISW, AT^SIST, AT^SISH and AT^SISC the
 //<srvProfileId> is needed to select a specific service profile.
-int srvProfileId = -1;
+int srvProfileId = -1; //todo del
 
 //char * last_errmsg = NULL;//todo del
 
@@ -383,6 +383,7 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
         unsigned int response_size, int max_responses, unsigned int timeout_ms) {
     unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
     unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
+    unsigned int last_bytes_received = 0;
     unsigned int bytes_received = 0;
     int num_of_tokens = 0;
 
@@ -513,13 +514,14 @@ bool parseSISURCs(unsigned char ** token_array, int received_urcs, char * urc_re
         char * urc_result = "";
         char * temp_token = "";
 
+        if (strcmp(token_array[urc_idx], "ERROR") == 0) {
+            return false;
+
         temp_token = strtok(token_array[urc_idx], urc_delimiter);
         strcpy(urc_prefix, temp_token);
         temp_token = strtok(NULL, urc_delimiter);
         strcpy(urc_result, temp_token);
 
-        if (strcmp(urc_prefix, "ERROR") == 0) {
-            return false;
 
         } else if (strcmp(urc_prefix, "^SIS") == 0) {
             //^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
@@ -587,7 +589,7 @@ bool inetServiceSetupProfile(int srvProfileId, char *URL, char *payload, int pay
     // If "hcContLen" = 0 then the data given in the "hcContent" string will be posted
     // without AT^SISW required.
     cmd_size = sprintf(command_to_send_buffer, "%s%d,\"hcContLen\",\"%d\"%s",
-                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, payload_len, AT_CMD_SUFFIX);
+                       AT_CMD_SISS_WRITE_PRFX, srvProfileId, 0, AT_CMD_SUFFIX);
     // send command and check response OK/ERROR
     while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
     if (!waitForOK()) { return false; }
@@ -601,7 +603,7 @@ bool inetServiceSetupProfile(int srvProfileId, char *URL, char *payload, int pay
     return waitForOK();
 }
 
-bool inetServiceOpen(int srvProfileID) {
+bool inetServiceOpen(int srvProfileId) {
     //AT^SISO=6
     int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISO_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
@@ -620,7 +622,7 @@ bool inetServiceOpen(int srvProfileID) {
     }
 }
 
-bool inetServiceClose(int srvProfileID) {
+bool inetServiceClose(int srvProfileId) {
     //AT^SISC=6
     int cmd_size = sprintf(command_to_send_buffer, "%s%d%s", AT_CMD_SISC_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
     while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
@@ -629,10 +631,13 @@ bool inetServiceClose(int srvProfileID) {
 }
 
 int splitBufferToResponses(unsigned char * buffer, unsigned char ** tokens_array, int max_tokens) {
+    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE];
+    memcpy(temp_buffer, buffer, MAX_INCOMING_BUF_SIZE);
+
     const char delimiter[] = "\r\n";
     char * token;
     int i=0;
-    token = strtok(buffer, delimiter);
+    token = strtok(temp_buffer, delimiter);
     while (token != NULL && i < max_tokens) {
         tokens_array[i++] = (unsigned char *)token;
         token = strtok(NULL, delimiter);
@@ -800,7 +805,7 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     // sanity check: conProfileId exists
     if (conProfileId == -1) { return -1;}
 
-    int srvProfileId = HTTP_POST_srvProfileId;
+    srvProfileId = HTTP_POST_srvProfileId;
 
     if (!inetServiceSetupProfile(srvProfileId, URL, payload, payload_len)) {
         return -1;
@@ -826,7 +831,7 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
     //
     // ^SISR: 6,2
 
-    int received_urcs = getSISURCs(tokens_array, 5, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
+    int received_urcs = getSISURCs(tokens_array, 4, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
     if (!parseSISURCs(tokens_array, received_urcs, urc_read_buff)) {
         return -1;
     }

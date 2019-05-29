@@ -24,6 +24,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
 #define MAX_conProfileId 5
 //#define MAX_srvProfileId 9
 #define HTTP_POST_srvProfileId 6
+#define ICCID_BUFFER_SIZE 23
 
 #define SISS_CMD_HTTP_GET 0
 #define SISS_CMD_HTTP_POST 1
@@ -55,6 +56,7 @@ unsigned char AT_CMD_SISR_WRITE_PRFX[] = "AT^SISR=";
 unsigned char AT_CMD_SISW_WRITE_PRFX[] = "AT^SISW=";
 unsigned char AT_CMD_SISC_WRITE_PRFX[] = "AT^SISC=";
 unsigned char AT_CMD_SISE_WRITE_PRFX[] = "AT^SISE=";
+unsigned char AT_CMD_CCID_READ[] = "AT+CCID?";
 unsigned char AT_CMD_SHUTDOWN[] = "AT^SMSO\r\n";
 
 // AT RESPONDS
@@ -425,6 +427,7 @@ int getSISURCs(unsigned char ** token_array, int total_expected_urcs, int max_ur
  * @return false if found error, otherwise true.
  */
 bool parseSISresponse(char * sis_result, int * urcCause, int * urcInfoId) {
+    // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
     char * temp_token = strtok(sis_result, ",");   //<srvProfileId>,
     temp_token = strtok(NULL, ",");         //<urcCause>
     *urcCause = atoi(temp_token);
@@ -450,6 +453,32 @@ int parseSISRWresponse(char * sisrw_result) {
     char * urcCauseId = "";
     strcpy(urcCauseId, &sisrw_result[2]);
     return atoi(urcCauseId);
+}
+
+/**
+ * parse "+CCID: " urc
+ * @param iccid_buffer buffer to store result
+ * @return length of iccid found
+ */
+int resolveCCIDresult(char * iccid_buffer) {
+    unsigned char * tokens_array[10] = {};
+    int received_urcs = getSISURCs(tokens_array, 2, 10, GENERAL_RECV_DLY_TIMEOUT_MS);
+
+    // +CCID: <ICCID> or OK or ERROR
+    const char urc_delimiter[] = ": ";
+    for (int urc_idx = 0; urc_idx < received_urcs; urc_idx++) {
+        if (strcmp(tokens_array[urc_idx], "ERROR") == 0) {
+            return 0;
+        } else if (*tokens_array[urc_idx] == '+') {
+            char * temp_token = "";
+
+            temp_token = strtok(tokens_array[urc_idx], urc_delimiter);
+            temp_token = strtok(NULL, urc_delimiter);
+            strncpy(iccid_buffer, temp_token, ICCID_BUFFER_SIZE);
+            return strlen(temp_token);
+        }
+    }
+    return 0;
 }
 
 ///**
@@ -821,8 +850,6 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
  * @return
  */
 int CellularGetLastError(char *errmsg, int errmsg_max_len) {
-    // todo
-    // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
 
     // AT^SISE=<srvProfileId>
     int cmd_size = sprintf(command_to_send_buffer, "%s%d%s",
@@ -847,4 +874,18 @@ int CellularGetLastError(char *errmsg, int errmsg_max_len) {
     } else {
         return strlen(urc_read_buff);
     }
+}
+
+/**
+ * Will send AT+CCID cmd and parse the response to return the sim ICCID
+ * @param iccid buffer to storce ICCID
+ * @return ICCID length
+ */
+int CellularGetICCID(char * iccid) {
+    //AT+CCID?
+    int cmd_size = sprintf(command_to_send_buffer, "%s%s", AT_CMD_CCID_READ, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+
+    return resolveCCIDresult(iccid);
 }

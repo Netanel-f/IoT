@@ -121,4 +121,12 @@ int CellularSendHTTPPOSTRequest(char *URL, char *payload, int payload_len, char 
  */
 int CellularGetLastError(char *errmsg, int errmsg_max_len);
 
+
+/**
+ * Will send AT+CCID cmd and parse the response to return the sim ICCID
+ * @param iccid buffer to storce ICCID
+ * @return ICCID length
+ */
+int CellularGetICCID(char * iccid);
+
 #endif //IOT_CELLULAR_H

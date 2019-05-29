@@ -77,7 +77,7 @@ int conProfileId = -1;
 //<srvProfileId> is needed to select a specific service profile.
 int srvProfileId = -1;
 
-char * last_errmsg = NULL;
+//char * last_errmsg = NULL;//todo del
 
 
 
@@ -433,8 +433,8 @@ bool parseSISresponse(char * sis_result, int * urcCause, int * urcInfoId) {
 
     // if <urcCause>==0
     if ((*urcCause == 0) && (1 <= *urcInfoId) && (*urcInfoId <= 2000)) {
-        temp_token = strtok(NULL, ",");         //<urcInfoText>
-        strcpy(last_errmsg, temp_token);
+//        temp_token = strtok(NULL, ",");         //<urcInfoText>
+//        strcpy(last_errmsg, temp_token);//todo del
         return false;
     }
     return true;

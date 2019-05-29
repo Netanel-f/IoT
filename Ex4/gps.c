@@ -250,7 +250,6 @@ bool GPSGetFixInformation(GPS_LOCATION_INFO *location){
         // call GPSGetReadRaw
         bytes_read = GPSGetReadRaw(buf, MAX_NMEA_LEN);
         if (bytes_read > 0) {
-            printf("%s\n", buf);//todo del
             result = parseRawData(buf, location);
         }
     }

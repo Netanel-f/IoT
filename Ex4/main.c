@@ -59,7 +59,6 @@ int main() {
     // Initialize the GPS.
     GPSInit(GPS_PORT);
 
-    //todo free
     GPS_LOCATION_INFO* last_location = malloc(sizeof(GPS_LOCATION_INFO));
     if (last_location == NULL)
     {
@@ -185,15 +184,13 @@ int main() {
                 char iccid[ICCID_BUFFER_SIZE] = "";
                 CellularGetICCID(iccid);
 
-                // todo transmit GPS data over HTTP
-                // transmit GPS data
+                // transmit GPS dataover HTTP
                 char gps_payload[1000] = "";
                 int gps_payload_len = GPSGetPayload(last_location, iccid, gps_payload);
                 char transmit_response[100] = "";
                 while (CellularSendHTTPPOSTRequest(TRANSMIT_URL, gps_payload, gps_payload_len, transmit_response, 99) == -1);
 
-                // todo transmit CELLULAR data over HTTP
-                // transmit cell data
+                // transmit cell data over HTTP
                 char unix_time[35];
                 GPSConvertFixtimeToUnixTime(last_location, unix_time);
 
@@ -214,7 +211,7 @@ int main() {
     printf("Disabling Cellular and exiting...\n");
     CellularDisable();
     GPSDisable();
-    free(last_location);//todo
+    free(last_location);
     exit(0);
 }
 

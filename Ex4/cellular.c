@@ -35,10 +35,7 @@ bool splitOpTokensToOPINFO(unsigned char * op_token, OPERATOR_INFO *opInfo);
  * 							GLOBAL VARIABLES
 *****************************************************************************/
 
-unsigned char command_to_send_buffer[MAX_AT_CMD_LEN] = "";  //todo
-unsigned char * response_tokens[10] = {};
-unsigned int num_of_tokens_found = 0;
-
+unsigned char command_to_send_buffer[MAX_AT_CMD_LEN] = "";
 unsigned char AT_CMD_SUFFIX[] = "\r\n";
 // AT_COMMANDS
 unsigned char AT_CMD_ECHO_OFF[] = "ATE0\r\n";
@@ -75,10 +72,7 @@ int conProfileId = -1;
 // The <srvProfileId> is used to reference all parameters related to the same service profile. Furthermore,
 // when using the AT commands AT^SISO, AT^SISR, AT^SISW, AT^SIST, AT^SISH and AT^SISC the
 //<srvProfileId> is needed to select a specific service profile.
-int srvProfileId = -1; //todo del
-
-//char * last_errmsg = NULL;//todo del
-
+int srvProfileId = -1;
 
 
 /**
@@ -302,53 +296,7 @@ bool CellularGetOperators(OPERATOR_INFO *opList, int maxops, int *numOpsFound){
 }
 
 
-//bool sendCmdAndGetResponse(unsigned int cmd_size, unsigned char * expected_response,
-//                           unsigned int response_size, int max_responses, unsigned int timeout_ms) {
-//
-//    unsigned char incoming_buffer[MAX_INCOMING_BUF_SIZE] = "";
-//    unsigned char temp_buffer[MAX_INCOMING_BUF_SIZE] = "";
-//    unsigned int bytes_received = 0;
-//    num_of_tokens_found = 0;
-//    response_tokens = {};
-//
-//    while (!SerialSend(command_to_send_buffer, cmd_size));
-//
-//    bool wait_for_response_or_error = true;
-//
-//    while (wait_for_response_or_error) {
-//        memset(incoming_buffer, '\0', bytes_received);
-//        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
-//        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-//        num_of_tokens_found = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
-//
-//        for (int i=0; i < num_of_tokens_found; i++) {
-//            if (memcmp(response_tokens[i], expected_response, response_size) == 0) {
-//                return true;
-//            } else if (memcmp(response_tokens[i], AT_RES_ERROR, 5) == 0) {
-//                return false;
-//            } else if (memcmp(response_tokens[i], AT_RES_CME, 4) == 0) {
-//                return false;
-//            }
-//        }
-//    }
-////    do {
-////        memset(incoming_buffer, '\0', bytes_received);
-////        bytes_received = SerialRecv(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
-////        strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-////        num_of_tokens = splitBufferToResponses(temp_buffer, response_tokens, max_responses);
-////
-////    } while ((memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) != 0) &&
-////             (memcmp(response_tokens[num_of_tokens-1], AT_RES_ERROR, 5) != 0)   &&
-////             (memcmp(response_tokens[num_of_tokens-1], AT_RES_CME, 4) != 0));
-////
-////    return memcmp(response_tokens[num_of_tokens-1], expected_response, response_size) == 0;
-//
-////todo
-//
-//}
-
 bool sendATcommand(unsigned char* command, unsigned int command_size) {
-    printf("send***%s\n", command);//todo
     if (!SerialSendCellular(command, command_size)){
         return false;
     }
@@ -367,7 +315,6 @@ bool waitForOK() {
         memset(incoming_buffer, '\0', MAX_INCOMING_BUF_SIZE);
         bytes_received = SerialRecvCellular(incoming_buffer, MAX_INCOMING_BUF_SIZE, GENERAL_RECV_TIMEOUT_MS);
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-        printf("waitOK**%s\n", incoming_buffer);//todo
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, 10);
 
     } while ((memcmp(token_array[num_of_tokens-1], AT_RES_OK, sizeof(AT_RES_OK) - 1) != 0) &&
@@ -392,7 +339,6 @@ bool waitForATresponse(unsigned char ** token_array, unsigned char * expected_re
         memset(incoming_buffer, '\0', bytes_received);
         bytes_received = SerialRecvCellular(incoming_buffer, MAX_INCOMING_BUF_SIZE, timeout_ms);
         strncat(temp_buffer, (const char *) incoming_buffer, bytes_received);
-        printf("waitat**%s\n", incoming_buffer);//todo
         num_of_tokens = splitBufferToResponses(temp_buffer, token_array, max_responses);
 
     } while ((memcmp(token_array[num_of_tokens-1], expected_response, response_size) != 0) &&
@@ -441,8 +387,6 @@ bool parseSISresponse(char * sis_result, int * urcCause, int * urcInfoId) {
 
     // if <urcCause>==0
     if ((*urcCause == 0) && (1 <= *urcInfoId) && (*urcInfoId <= 2000)) {
-//        temp_token = strtok(NULL, ",");         //<urcInfoText>
-//        strcpy(last_errmsg, temp_token);//todo del
         return false;
     }
     return true;
@@ -759,33 +703,6 @@ bool CellularSetupInternetConnectionProfile(int inact_time_sec) {
             conProfileId = conProfileId_cand;
             return true;
         }
-//        // TODO delete this code.
-//        // AT^SICS=0,conType,GPRS0
-//        int cmd_size = sprintf(command_to_send, "%s%d,conType,GPRS0%s", AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
-//        while (!sendATcommand(command_to_send, cmd_size - 1));
-//
-//        if (waitForOK()) {
-//            memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-//
-//            // AT^SICS=0,"inactTO", "20"
-//            int cmd_size = sprintf(command_to_send, "%s%d,\"inactTO\", \"%d\"%s",
-//                                   AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, inact_time_sec, AT_CMD_SUFFIX);
-//            while (!sendATcommand(command_to_send, cmd_size - 1));
-//
-//            if (waitForOK()) {
-//                memset(command_to_send, '\0', MAX_AT_CMD_LEN);
-//
-//                // AT^SICS=0,apn,"postm2m.lu"
-//                int cmd_size = sprintf(command_to_send, "%s%d,apn,\"postm2m.lu\"%s",
-//                                       AT_CMD_SICS_WRITE_PRFX, conProfileId_cand, AT_CMD_SUFFIX);
-//                while (!sendATcommand(command_to_send, cmd_size - 1));
-//
-//                if (waitForOK()) {
-//                    conProfileId = conProfileId_cand;
-//                    return true;
-//                }
-//            }
-//        }
     }
 
     return false;

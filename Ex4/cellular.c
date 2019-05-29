@@ -802,5 +802,15 @@ int CellularGetLastError(char *errmsg, int errmsg_max_len) {
     // todo
     // ^SIS: <srvProfileId>, <urcCause>[, [<urcInfoId>][, <urcInfoText>]]
 
+    // AT^SISE=<srvProfileId>
+    int cmd_size = sprintf(command_to_send_buffer, "%s%d,\"SrvType\",\"Http\"%s",
+                           AT_CMD_SISS_WRITE_PRFX, srvProfileId, AT_CMD_SUFFIX);
+    // send command and check response OK/ERROR
+    while (!sendATcommand(command_to_send_buffer, cmd_size - 1));
+
+    // response:
+    // ^SISE: <srvProfileId>, <infoID>[, <info>]
+    if (!waitForOK()) { return false; }
+
     return 1;
 }

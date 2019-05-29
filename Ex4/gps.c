@@ -285,15 +285,15 @@ void GPSConvertFixtimeToUnixTime(GPS_LOCATION_INFO * gps_data, char * unix_time)
 
 
 
-    current_time.tm_hour = atoi(hour);
-    current_time.tm_min = atoi(minutes);
-    current_time.tm_sec = atoi(seconds);
-    current_time.tm_mday = atoi(day);
-    current_time.tm_mon = atoi(month);
-    current_time.tm_year = atoi(year) + 100;
+    current_time.tm_hour = atoi(hour);      //hours since midnight – [0, 23]
+    current_time.tm_min = atoi(minutes);    //minutes after the hour – [0, 59]
+    current_time.tm_sec = atoi(seconds);    //seconds after the minute – [0, 60]
+    current_time.tm_mday = atoi(day);       //day of the month – [1, 31]
+    current_time.tm_mon = atoi(month) - 1;  //months since January – [0, 11]
+    current_time.tm_year = atoi(year) + 100;//years since 1900
 
     time_t unix_time_stamp = mktime(&current_time);
-    sprintf(unix_time, "%s", unix_time_stamp);
+    sprintf(unix_time, "%lu", unix_time_stamp);
 }
 
 

@@ -1,0 +1,24 @@
+Netanel Fayoumi, netanel.fayoumi@mail.huji.ac.il, 201209806
+Sapir Elyovitch, sapir.elyovitch@mail.huji.ac.il, 204368518
+
+
+Software design-architecture-flow description
+---------------------------------------------
+We have used MCU support of UART, USART and Capacitive touch sensor.
+We have also managed to support screen line scroll to ease the user eyes.
+
+-- Setup MCU needed modules.
+-- Init GPS & MODEM serial connections (UART & USART)
+-- Infinite loop which stop when user pushes a button
+	-- BTN0: starting the procedure of sampling operators and checking
+			 the signal quality.
+			 Then, transmit HTTP POST request to requestbin.com with relavant info.
+	-- BTN1: Initiate a speed limit program.
+			 * Set speed limit using the capacative touch sensor.
+			 * Sample device location every 5 seconds.
+			 * Calculate speed of device (based on the last two location samples)
+			 * If device's speed is greater then limit then send gps payload + 'highspeed=true'
+			 * If device's speed was greater then limit and now the speed is lower then limit,
+			   then send gps payload + 'highspeed=false'.
+			   
+			   

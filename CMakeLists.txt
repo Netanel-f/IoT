@@ -16,3 +16,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11")
 # EX 4
 set(EX4_SOURCE_FILES Ex4/main.c Ex4/serial_io_cellular.h Ex4/serial_io_win32_cellular.c Ex4/serial_io_gps.h Ex4/serial_io_win32_gps.c Ex4/cellular.c Ex4/cellular.h Ex4/gps.h Ex4/gps.c)
 add_executable(IOT_Ex4 ${EX4_SOURCE_FILES})
+
+
+# EX 5
+set(EX5_SOURCE_FILES Ex5/main.c Ex5/serial_io_uart.h Ex5/serial_io_uart.c Ex5/serial_io_usart.h Ex5/serial_io_usart.c Ex5/cellular.c Ex5/cellular.h Ex5/gps.h Ex5/gps.c)
+add_executable(IOT_Ex5 ${EX5_SOURCE_FILES})

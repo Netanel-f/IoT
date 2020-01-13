@@ -1,2 +1,2 @@
 # IOT
-67612 - Internet of Things Workshop
+Internet of Things Workshop taken at The Hebrew University of Jerusalem
